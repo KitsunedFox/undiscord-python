@@ -9,7 +9,7 @@
    > **Libraries:**
 
    > [Furl - URL manipulation made simple.](https://pypi.org/project/furl/)
-   >   - `pip install furl`
+   > `pip install furl`
 
 2. Execute the script from [Releases](https://github.com/HelpyFazbear/deleteDiscordMessages.py/releases/tag/Latest)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields.
