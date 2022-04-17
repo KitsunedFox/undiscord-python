@@ -4,12 +4,14 @@
 
 ## Instructions:
 
-1. Install the Libraries below using any python interpreter on PC or Android (Might not work on Pydroid. Try installing python on Termux instead)
+_This script might not work on Pydroid due to its limitations. Please try running on Termux with Python installed instead._
+
+1. Install the Libraries below using any python interpreter on PC or Android.
 
    > **Libraries:**
 
    > [Furl - URL manipulation made simple.](https://pypi.org/project/furl/)
-   > `pip install furl`
+   > > `pip install furl`
 
 2. Execute the script from [Releases](https://github.com/HelpyFazbear/deleteDiscordMessages.py/releases/tag/Latest)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields.
