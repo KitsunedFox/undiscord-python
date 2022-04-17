@@ -3,14 +3,14 @@
 > ⚠️ **Any tool that automates actions on user accounts, including this one, could result in account termination.** [Use at your own risk!](https://support.discordapp.com/hc/en-us/articles/115002192352-Automated-user-accounts-self-bots-)
 
 ## Instructions:
-1. Execute the script from releases using any python interpreter on PC or Android (Might not work on Pydroid. Try installing Termux instead)
+1. Execute the script from [Releases](https://github.com/HelpyFazbear/deleteDiscordMessages.py/releases/tag/Latest) using any python interpreter on PC or Android (Might not work on Pydroid. Try installing python on Termux instead)
 2. Fill "Auth Token", "Guild ID" and "Channel ID" Fields.
 3. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
 
-If you have issues or just need help [open a issue here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/issues)
+If you have issues or just need help [open a discussion here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/discussions)
 
 # DO NOT SHARE YOUR `authToken`!
 
