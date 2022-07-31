@@ -4,7 +4,7 @@
 
 ## Instructions:
 
-_This script might not work on Pydroid due to its limitations. Please try running on Termux with Python installed instead._
+_This script might not work on Pydroid due to its limitations. Please try running on [Termux](https://github.com/HardcodedCat/termux-monet) with Python installed instead._
 
 1. Install the Libraries below using any python interpreter on PC or Android.
 
@@ -16,7 +16,7 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [Pwinput - A cross-platform Python module that displays **** for password input.](https://pypi.org/project/pwinput/)
    > > `pip install pwinput`
 
-2. Execute the script from [Releases](https://github.com/HelpyFazbear/deleteDiscordMessages.py/releases)
+2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
 4. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
