@@ -1,8 +1,10 @@
 from furl import furl
 try:
     import httpx as requests
+    from requests import RequestError
 except ImportError:
     import requests
+    from requests.exceptions import RequestException
 try:
     import ujson as json
 except ImportError:
@@ -59,7 +61,7 @@ print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░�
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.2 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.4 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
 token = None
 
@@ -148,14 +150,22 @@ remaining = None
 def search():
     print(mgn + blackbg(text=" Searching on URL: "))
     print(mg + greyple(text=f"{searchurl} \n"))
-    response = requests.get(searchurl, headers = headers)
+    try:
+        response = requests.get(searchurl, headers = headers)
+    except RequestException or RequestError:
+        internetfail()
+        response = requests.get(searchurl, headers = headers)
     #print(response.json())
     if response.status_code == 202:
         delay = [response.json()][0]["retry_after"]
         print(mg + yellow(f"This channel wasn't indexed."))
         print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
         time.sleep(delay)
-        response = requests.get(searchurl, headers = headers)
+        try:
+            response = requests.get(searchurl, headers = headers)
+        except RequestException or RequestError:
+            internetfail()
+            response = requests.get(searchurl, headers = headers)
     ping = int(response.elapsed.total_seconds() *1000)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping)}ms \n"))
     read = [response.json()]
@@ -198,7 +208,11 @@ def deleteseq(read):
         print(mgn + num + red(" Deleting ID: ") + greyple(message_id))
         print(" "*len(num) + "     " + (msg)[0]["author"]["username"] + "#" + (msg)[0]["author"]["discriminator"] + " — " + datetime.fromisoformat(timestamp).strftime("%Y-%m-%d, %H:%M:%S %p"))
         print(" "*len(num) + "     " + "Content: " + greyple((msg)[0]["content"] + "\n"))
-        response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
+        try: 
+            response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
+        except RequestException or RequestError:
+            internetfail()
+            response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
         if response.status_code == 204:
             success += 1
         if response.status_code == 429:
@@ -221,6 +235,24 @@ def deleteseq(read):
                 basedelay -= 0.45
             print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
         time.sleep(basedelay)
+
+cattempt = 1
+
+def internetfail():
+    global cattempt
+    num = f"({str(cattempt)})"
+    print(mg + num + red(f" Connection Failure!"))
+    print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
+    print(mg)
+    time.sleep(30)
+    try:
+        requests.get("https://www.discord.com/api/v9/")
+        cattempt = 1
+        print(mg + green(f"Connection successfully established!"))
+        print(mg)
+    except RequestException or RequestError:
+        cattempt += 1
+        internetfail()
 
 # TODO: 
 # 1.  Add more error messages and exceptions
