@@ -1,10 +1,9 @@
 from furl import furl
-try:
-    import httpx as requests
-    from requests import RequestError
-except ImportError:
-    import requests
-    from requests.exceptions import RequestException
+import requests
+from requests.exceptions import ConnectionError
+from requests.exceptions import RequestException
+from http.client import RemoteDisconnected
+from urllib3.exceptions import ProtocolError
 try:
     import ujson as json
 except ImportError:
@@ -33,14 +32,23 @@ content = ""
 
 include_nsfw = ""
 
-def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
-# print(colored(200, 20, 200, 0, 0, 0, "Hello World"))
-    if rb is None and gb is None and bb is None:
-        return "\033[38;2;{};{};{}m{}\033[0m".format(r, g, b, text)
-    elif r is None and g is None and b is None:
-        return "\033[48;2;{};{};{}m{}\033[0m".format(rb, gb, bb, text)
-    else:
-        return "\033[38;2;{};{};{}m\033[48;2;{};{};{}m{}\033[0m".format(r, g, b, rb, gb, bb, text)
+color_support = True
+
+if color_support == True:
+    def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
+    # print(colored(200, 20, 200, 0, 0, 0, "Hello World"))
+        if rb is None and gb is None and bb is None:
+            return "\033[38;2;{};{};{}m{}\033[0m".format(r, g, b, text)
+        elif r is None and g is None and b is None:
+            return "\033[48;2;{};{};{}m{}\033[0m".format(rb, gb, bb, text)
+        else:
+            return "\033[38;2;{};{};{}m\033[48;2;{};{};{}m{}\033[0m".format(r, g, b, rb, gb, bb, text)
+else:
+    def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
+        if rb is None and gb is None and bb is None:
+            return str(text)
+        else:
+            return "[{}]".format(text)
 
 def blurple(text : str):
     return colored(r = 88, g=101, b=242, text=text)
@@ -87,7 +95,7 @@ print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░�
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.8 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+1 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
 def checktoken():
     if token == "":
@@ -177,29 +185,46 @@ total = None
 
 remaining = None
 
+allundeletable = False
+
 def search():
+    global allundeletable
+    global remaining
+    global total
     print(mgn + blackbg(text=" Searching on URL: "))
     print(mg + greyple(text=f"{searchurl} \n"))
     try:
         response = requests.get(searchurl, headers = headers)
-    except RequestException or RequestError:
+    except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
         internetfail()
         response = requests.get(searchurl, headers = headers)
     #print(response.json())
-    if response.status_code == 202:
+    if response.status_code == 200:
+        pass
+    elif response.status_code == 202:
         delay = [response.json()][0]["retry_after"]
         print(mg + yellow(f"This channel wasn't indexed."))
         print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
         time.sleep(delay)
         try:
             response = requests.get(searchurl, headers = headers)
-        except RequestException or RequestError:
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
             response = requests.get(searchurl, headers = headers)
+    elif response.status_code == 429:
+        delay = int([response.json()][0]["retry_after"]) + 3
+        print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!\n"))
+        time.sleep(delay)
+        try:
+            response = requests.get(searchurl, headers = headers)
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
+            internetfail()
+            response = requests.get(searchurl, headers = headers)
+    else:
+        print(mg + red(f"Unknown Error! Status code: " + str(response.status_code)) + "\n")
+    read = [response.json()]
     ping = icmplib.ping("discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
-    read = [response.json()]
-    global remaining
     def deletable(response : str):
         if "'type': 0" in response: return True
         elif "'type': 6" in response: return True
@@ -219,18 +244,19 @@ def search():
     isdeletable = deletable(str(response.json()))
     if remaining == None:
         remaining = int((read)[0]["total_results"])
-    global total
     if total == None:
         total = int((read)[0]["total_results"])
         if isdeletable == True:
             print(mg + blurple("Total messages found: ") + greyple(total))
             print(mg + blurple("Messages in current page: ") +  greyple(str(len((read)[0]["messages"]))) + "\n")
         elif total != 0:
+            allundeletable = True
             print(mg + red(f"Found only undeletable messages! Skipping to the next page."))
         else:
             print(mg + blurple("Total messages found: ") + greyple(total))
             print(mg + blurple("Messages in current page: ") +  greyple(str(len((read)[0]["messages"]))) + "\n")
     elif isdeletable == False and remaining != 0:
+        allundeletable = True
         print(mg + red(f"Found only undeletable messages! Skipping to the next page."))
     else:
         print(mg + blurple("Total messages remaining: ") + greyple(remaining))
@@ -241,22 +267,30 @@ def search():
 
 index = 0
 basedelay = 0.55
-success = 0
-skipped = 0
+reqsuccess = 0
 
-def deleteseq(read):
+deleted = 0
+failed = 0
+
+pending = {}
+
+def deleteseq(read = None, msglist = None):
     #pgsize = len((read)[0]["messages"])
     global index
     global total
+    global allundeletable
     global remaining
+    global failed
     global basedelay
-    global channel_id
-    global success
-    global skipped
     global searchurl
     typeblocklist = [1, 2, 3, 4, 5, 14, 15, 16, 17, 21]
     def typelist(type : int):
         if type == 0: return "DEFAULT"
+        elif type == 1: return "RECIPIENT_ADD"
+        elif type == 2: return "RECIPIENT_REMOVE"
+        elif type == 3: return "CALL"
+        elif type == 4: return "CHANNEL_NAME_CHANGE"
+        elif type == 5: return "CHANNEL_ICON_CHANGE"
         elif type == 6: return "CHANNEL_PINNED_MESSAGE"
         elif type == 7: return "USER_JOIN"
         elif type == 8: return "GUILD_BOOST"
@@ -264,63 +298,128 @@ def deleteseq(read):
         elif type == 10: return "GUILD_BOOST_TIER_2"
         elif type == 11: return "GUILD_BOOST_TIER_3"
         elif type == 12: return "CHANNEL_FOLLOW_ADD"
+        elif type == 14: return "GUILD_DISCOVERY_DISQUALIFIED"
+        elif type == 15: return "GUILD_DISCOVERY_REQUALIFIED"
+        elif type == 16: return "GUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING"
+        elif type == 17: return "GUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING"
         elif type == 18: return "THREAD_CREATED"
         elif type == 19: return "REPLY"
         elif type == 20: return "CHAT_INPUT_COMMAND"
+        elif type == 21: return "THREAD_STARTER_MESSAGE"
         elif type == 22: return "GUILD_INVITE_REMINDER"
         elif type == 23: return "CONTEXT_MENU_COMMAND"
         elif type == 24: return "AUTO_MODERATION_ACTION*"
         else: return "UNKNOWN"
-    for msg in (read)[0]["messages"]:
-        timestamp = (msg)[0]["timestamp"]
-        message_id = (msg)[0]["id"]
-        type = (msg)[0]["type"]
-        typestr = typelist(type)
-        if type not in typeblocklist:
-            index += 1
-            remaining -= 1
+    def deletemsg(message_id, message_author, message_content, message_date, message_type, message_channel, typestr):
+        global index
+        global total
+        global remaining
+        global basedelay
+        global reqsuccess
+        global deleted
+        global failed
+        global pending
+        global searchurl
+        num = f"({index}/{total})"
+        def printmsg():
             num = f"({index}/{total})"
-            if channel_id == "":
-                chid = int((msg)[0]["channel_id"])
-            else:
-                chid = channel_id
             print(mgn + num + red(" Deleting ID: ") + greyple(message_id))
-            print(" "*len(num) + "     " + (msg)[0]["author"]["username"] + "#" + (msg)[0]["author"]["discriminator"] + " — " + datetime.fromisoformat(timestamp).strftime("%Y-%m-%d, %H:%M:%S %p"))
-            print(" "*len(num) + "     " + "Type: " + greyple(str(type) + " — " + typestr))
-            print(" "*len(num) + "     " + "Content: " + greyple((msg)[0]["content"] + "\n"))
-            try: 
-                response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
-            except RequestException or RequestError:
-                internetfail()
-                response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
-            if response.status_code == 204:
-                success += 1
-            if response.status_code == 429:
+            print(" "*len(num) + "     " + message_author + " — " + message_date)
+            print(" "*len(num) + "     " + "Type: " + greyple(str(message_type) + " — " + typestr))
+            print(" "*len(num) + "     " + "Content: " + greyple(message_content + "\n"))
+        if str(f"{message_id}") in pending.keys():
+            del pending[f"{message_id}"]
+        try: 
+            response = requests.delete(f"https://discord.com/api/v9/channels/{message_channel}/messages/{message_id}", headers = headers)
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
+            internetfail()
+            response = requests.delete(f"https://discord.com/api/v9/channels/{message_channel}/messages/{message_id}", headers = headers)
+        if response.status_code == 204:
+            printmsg()
+            reqsuccess += 1
+            deleted += 1
+        else:
+            responsejson = response.json()
+            if [response.json()][0]["code"] == 20028:
+            # response.status_code 429
                 delay = [response.json()][0]["retry_after"]
-                skipped += 1
+                pending[f"{message_id}"] = []
+                pending[f"{message_id}"].append({"author":f"{message_author}", "content":f"{message_content}", "date":f"{message_date}", "type":f"{message_type}", "channel":f"{message_channel}"})
                 remaining += 1
                 index -= 1
                 if delay <= 2:
                     basedelay += delay
                 else:
                     basedelay += (delay / 2)
-                success = 0
+                reqsuccess = 0
                 print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
                 print(mg + yellow(f"Adjusted delete delay to {int(basedelay*1000)}ms."))
                 time.sleep(delay)
-            if basedelay >= 1 and success >= 10:
-                success = 0
-                if basedelay >= 4:
-                    basedelay = (basedelay // 2)
-                else:
-                    basedelay -= 0.45
-                print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
-            time.sleep(basedelay)
-        else:
+            #print(response.text + " STATUS " + str(response.status_code))
+            elif [response.json()][0]["code"] == 50083:
+            # response.status_code 400
+                print(mgn + num + red(f" Couldn't delete this message. Thread is archived.") + "\n")
+                reqsuccess += 1
+                failed += 1
+                if str(f"{message_id}") not in pending.keys():
+                    searchurl = furl(origsearchurl).remove(['max_id']).url
+                    searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
+            else:
+                print(mgn + red(f"Unknown Error! Status code: " + str(response.status_code)) + "\n")
+        if basedelay >= 1 and reqsuccess >= 10:
+            reqsuccess = 0
+            if basedelay >= 4:
+                basedelay = (basedelay // 2)
+            else:
+                basedelay -= 0.45
+            print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
+        time.sleep(basedelay)
+    if read != None:
+        for msg in (read)[0]["messages"]:
+            message_id = (msg)[0]["id"]
+            message_type = (msg)[0]["type"]
+            typestr = typelist(message_type)
+            index += 1
             remaining -= 1
-            total -= 1
-            searchurl = furl(origsearchurl).remove(['max_id']).url
-            searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
+            num = f"({index}/{total})"
+            if message_type not in typeblocklist:
+                message_author = str((msg)[0]["author"]["username"] + "#" + (msg)[0]["author"]["discriminator"])
+                try:
+                    message_content = str((msg)[0]["content"])
+                except:
+                    message_content = None
+                message_timestamp = (msg)[0]["timestamp"]
+                message_date = datetime.fromisoformat(message_timestamp).strftime("%Y-%m-%d, %H:%M:%S %p")
+                message_channel = int((msg)[0]["channel_id"])
+                deletemsg(message_id, message_author, message_content, message_date, message_type, message_channel, typestr)
+            else:
+                failed += 1
+                if allundeletable == False:
+                    print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
+                    print(" "*len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
+                searchurl = furl(origsearchurl).remove(['max_id']).url
+                searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
+    if msglist != None:
+        for message_id in msglist:
+            message_type = str(msglist[f"{message_id}"][0]["type"])
+            typestr = typelist(message_type)
+            index += 1
+            remaining -= 1
+            num = f"({index}/{total})"
+            if message_type not in typeblocklist: 
+                message_author = str(msglist[f"{message_id}"][0]["author"])
+                try:
+                    message_content = str(msglist[f"{message_id}"][0]["content"])
+                except:
+                    message_content = None
+                message_date = str(msglist[f"{message_id}"][0]["date"])
+                message_channel = str(msglist[f"{message_id}"][0]["channel"])
+                deletemsg(message_id, message_author, message_content, message_date, message_type, message_channel, typestr)
+            else:
+                failed += 1
+                print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
+                print(" "*len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
+                del pending[f"{message_id}"]
 
 cattempt = 1
 
@@ -336,7 +435,8 @@ def internetfail():
         cattempt = 1
         print(mg + green(f"Connection successfully established!"))
         print(mg)
-    except RequestException or RequestError:
+        return
+    except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
         cattempt += 1
         internetfail()
 
@@ -355,6 +455,8 @@ def internetfail():
 # TODO: Make final cycles amount more precise to avoid skipping messages.
 # TODO2: UI Update (ver 2.0.0)
 
+# TODO: ADD THE REST OF MESSAGE TYPES
+
 # --------------------------------------------------
 
 read = search()
@@ -363,29 +465,46 @@ divided = ceil(int(total) / 25)
 
 for _ in range(divided):
     deleteseq(read)
+    allundeletable = False
     remaining = zerofy(remaining)
     read = search()
 
-searchurl = origsearchurl
+def listfinalcheck():
+    if len(pending) != 0:
+        final()
+
+def listfinal():
+    deleteseq(msglist = pending)
+    finalcheck()
 
 def finalcheck():
     if remaining != 0:
         final()
-        
+
 def final():
     global read
     global remaining
-    divided = ceil(skipped / 25)
+    divided = ceil(remaining / 25)
     for _ in range(divided):
         deleteseq(read)
+        allundeletable = False
         remaining = zerofy(remaining)
         read = search()
     finalcheck()
 
-finalcheck()
+def remainingfinalcheck():
+    if remaining != 0:
+        remainingfinal()
+
+def remainingfinal():
+    listfinalcheck()
+    finalcheck()
+    remainingfinalcheck()
+
+remainingfinalcheck()
 
 print(mgn + green(f"Ended at {now()}"))
-print(mg + greyple(f"Deleted {total} messages"))
+print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
 
 # UNDISCORD-MOBILE - Bulk delete discord messages on Android or any Python Interpreter.
 # https://github.com/HardcodedCat/undiscord-mobile
