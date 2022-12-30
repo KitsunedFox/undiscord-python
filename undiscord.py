@@ -13,6 +13,7 @@ import time
 from math import ceil
 from pwinput import pwinput
 import icmplib
+from random import randrange
 
 token = ""
 
@@ -90,12 +91,12 @@ print(blurple(text="""░██    ░██░░██░░░██  ██�
 print(blurple(text="""░██    ░██ ░██  ░██ ██░░░██░██░░█████ ░██  ░░ ░██   ░██ ░██ ░  ██░░░██"""))
 print(blurple(text="""░██    ░██ ░██  ░██░██  ░██░██ ░░░░░██░██   ██░██   ░██ ░██   ░██  ░██"""))
 print(blurple(text="""░░███████  ███  ░██░░██████░██ ██████ ░░█████ ░░██████ ░███   ░░██████"""))
-print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░░░ ░░ ░░░░░░   ░░░░░   ░░░░░░  ░░░     ░░░░░░ .py""") + "\n")
+print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░░░ ░░ ░░░░░░   ░░░░░   ░░░░░░  ░░░     ░░░░░░ """) + yellow(".py") + "\n")
 
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+1 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+2 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
 def checktoken():
     if token == "":
@@ -199,8 +200,8 @@ def search():
         internetfail()
         response = requests.get(searchurl, headers = headers)
     #print(response.json())
-    if response.status_code == 200:
-        pass
+    if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
+        read = [response.json()]
     elif response.status_code == 202:
         delay = [response.json()][0]["retry_after"]
         print(mg + yellow(f"This channel wasn't indexed."))
@@ -211,6 +212,7 @@ def search():
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
             response = requests.get(searchurl, headers = headers)
+        read = [response.json()]
     elif response.status_code == 429:
         delay = int([response.json()][0]["retry_after"]) + 3
         print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!\n"))
@@ -220,9 +222,14 @@ def search():
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
             response = requests.get(searchurl, headers = headers)
+        read = [response.json()]
     else:
-        print(mg + red(f"Unknown Error! Status code: " + str(response.status_code)) + "\n")
-    read = [response.json()]
+        try:
+            responsejson = response.json()
+        except:
+            responsejson = json.loads(json.dumps({'message': 'The api returned no error message.'}))
+        print(mgn + num + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
+        print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
     ping = icmplib.ping("discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
     def deletable(response : str):
@@ -334,14 +341,14 @@ def deleteseq(read = None, msglist = None):
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
             response = requests.delete(f"https://discord.com/api/v9/channels/{message_channel}/messages/{message_id}", headers = headers)
-        if response.status_code == 204:
+        if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             printmsg()
             reqsuccess += 1
             deleted += 1
         else:
-            responsejson = response.json()
-            if [response.json()][0]["code"] == 20028:
-            # response.status_code 429
+            if response.status_code == 429:
+                responsejson = response.json()
+            # [response.json()][0]["code"] == 20028
                 delay = [response.json()][0]["retry_after"]
                 pending[f"{message_id}"] = []
                 pending[f"{message_id}"].append({"author":f"{message_author}", "content":f"{message_content}", "date":f"{message_date}", "type":f"{message_type}", "channel":f"{message_channel}"})
@@ -350,30 +357,33 @@ def deleteseq(read = None, msglist = None):
                 if delay <= 2:
                     basedelay += delay
                 else:
-                    basedelay += (delay / 2)
+                    basedelay += (round((delay / 1.85)) + float((f"0.{randrange(999)}")))
                 reqsuccess = 0
                 print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
-                print(mg + yellow(f"Adjusted delete delay to {int(basedelay*1000)}ms."))
+                print(mg + yellow(f"Adjusted delete delay to ≈{int(basedelay*1000)}ms."))
                 time.sleep(delay)
             #print(response.text + " STATUS " + str(response.status_code))
-            elif [response.json()][0]["code"] == 50083:
-            # response.status_code 400
-                print(mgn + num + red(f" Couldn't delete this message. Thread is archived.") + "\n")
+            else:
+                try:
+                    responsejson = response.json()
+                except:
+                    responsejson = json.loads(json.dumps({'message': 'The api returned no error message.'}))
+            # [responsejson][0]["code"] == 50083 / statuscode 400
+                print(mgn + num + red(f" Couldn't delete this message. Status code: " + str(response.status_code)))
+                print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
                 reqsuccess += 1
                 failed += 1
                 if str(f"{message_id}") not in pending.keys():
                     searchurl = furl(origsearchurl).remove(['max_id']).url
                     searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
-            else:
-                print(mgn + red(f"Unknown Error! Status code: " + str(response.status_code)) + "\n")
-        if basedelay >= 1 and reqsuccess >= 10:
+        if basedelay >= 1 and reqsuccess >= (6 + randrange(6)):
             reqsuccess = 0
             if basedelay >= 4:
-                basedelay = (basedelay // 2)
+                basedelay = round((basedelay / (1 + float((f"0.{randrange(999)}")))))
             else:
-                basedelay -= 0.45
+                basedelay -= float((f"0.{randrange(999)}"))
             print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
-        time.sleep(basedelay)
+        time.sleep((basedelay + float((f"0.{randrange(999)}"))))
     if read != None:
         for msg in (read)[0]["messages"]:
             message_id = (msg)[0]["id"]
@@ -452,10 +462,9 @@ def internetfail():
 # Replaced "before=" with "max_id" because "before=" is inclusive (includes the indicated message), and we don't want that!
 # So that the "message floor" raises everytime the script gets a new messages list with undeletable messages, and user-defined max_url may be respected.
 
-# TODO: Make final cycles amount more precise to avoid skipping messages.
-# TODO2: UI Update (ver 2.0.0)
-
-# TODO: ADD THE REST OF MESSAGE TYPES
+# TODO: UI Update (ver 2.0.0)
+# TODO2: Enhance message search exceptions
+# RecursionError
 
 # --------------------------------------------------
 
