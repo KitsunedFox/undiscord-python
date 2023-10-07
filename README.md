@@ -4,7 +4,7 @@
 
 ## Installation:
 
-   > > `pip install undiscord`
+   > `pip install undiscord`
 
 ## Instructions:
 
@@ -26,10 +26,12 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [progress - Easy to use progress bars.](https://pypi.org/project/progress/)
    > > `pip install progress`
 
-2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases) or install it from PyPi
-3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
-4. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
+2. Download the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases) or install it from PyPi
+3. Run `undiscord <args>` (or `python undiscord.py <args>` if downloaded from GitHub Releases)
+4. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
+5. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
+- For additional help, run `undiscord --help`
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
 

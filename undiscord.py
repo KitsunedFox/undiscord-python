@@ -1,4 +1,4 @@
-version = "1.9.7"
+version = "1.9.8"
 release_type = "Beta" # "Beta" or "Release"
 
 ########################################
@@ -48,19 +48,19 @@ channel_id = ""
 
 author_id = ""
 
-has_link = False
+has_link = None
 
-has_file = False
+has_file = None
 
 content = ""
 
-include_nsfw = True
+is_nsfw = True
 
 color_support = True
 
 fetch_before = True
 
-skip_configuration = False
+skip_configuration = None
 
 ########################################
 
@@ -93,7 +93,7 @@ parser.add_argument('-max', '--max_id', type=int, dest='max_id', metavar='<messa
 parser.add_argument('-hl', '--has_link', action='store_true', dest='has_link', help="Fetch only messages that contains URLs?", required=False)
 parser.add_argument('-hf', '--has_file', action='store_true', dest='has_file', help="Fetch only messages that contains Files?", required=False)
 parser.add_argument('-C', '--content', type=str, dest='content', metavar='<"text">', help="Fetch only messages that contains an specific text?", required=False)
-parser.add_argument('-n', '--nsfw', action='store_true', dest='include_nsfw', help="Include NSFW Messages on Fetch?", required=False)
+parser.add_argument('-n', '--nsfw', action='store_true', dest='is_nsfw', help="Is NSFW Channel?", required=False)
 parser.add_argument('-col', '--color', action='store_true', dest='color_support', help="Shows colored UI", required=False)
 parser.add_argument('-F', '--fetch', action='store_true', dest='fetch_before', help="Enables Fetch-Before Mode", required=False)
 parser.add_argument('-S', '--skip', action='store_true', dest='skip_configuration', help="Skips optional configuration prompts", required=False)
@@ -106,13 +106,13 @@ min_id = str(args.min_id) if args.min_id != None else min_id
 max_id = str(args.max_id) if args.max_id != None else max_id
 channel_id = str(args.channel_id) if args.channel_id != None else channel_id
 author_id = str(args.author_id) if args.author_id != None else author_id
-has_link = True if args.has_link == True else has_link
-has_file = True if args.has_file == True else has_file
+has_link = True if args.has_link == True else has_link if has_link != None else False
+has_file = True if args.has_file == True else has_file if has_file != None else False
 content = args.content if args.content != None else content
-include_nsfw = True if args.include_nsfw == True else include_nsfw
-color_support = True if args.color_support == True else color_support
-fetch_before = True if args.fetch_before == True else fetch_before
-skip_configuration = True if args.skip_configuration == True else skip_configuration
+is_nsfw = True if args.is_nsfw == True else is_nsfw if is_nsfw != None else False
+color_support = True if args.color_support == True else color_support if color_support != None else False
+fetch_before = True if args.fetch_before == True else fetch_before if fetch_before != None else False
+skip_configuration = True if args.skip_configuration == True else skip_configuration if skip_configuration != None else False
 
 if color_support == True:
     def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
@@ -168,8 +168,6 @@ urlregex += r'(?::(\d{1,5}))?'
 # Query path:
 urlregex += r'(?:(\/\S+)*)'
 urlregex += r')'
-
-#print("\n" + blurple(text=f"""{pyfiglet.figlet_format("Undiscord", font="standard")}"""))
 
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
@@ -300,10 +298,13 @@ if (guild_id == "" and skip_configuration != True) or (channel_id == "" and guil
     print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Leave blank "))
     guild_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Guild ID: ")).strip()
 
-while channel_id == "":
+while channel_id == "" and guild_id == "":
     channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
     if channel_id == "":
         print(mgn + red("You cannot skip this input!"))
+
+if channel_id == "":
+    channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
 
 if guild_id == "":
     searchurl = f"{api}/channels/{channel_id}/messages/search?"
@@ -334,13 +335,13 @@ if max_id != "":
 if has_link == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
     has_link = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain links? ")).lower().strip() == 'y' else False
-if has_link != True:
+if has_link == True:
     searchurl = furl(searchurl).add({"has":"link"}).url
 
 if has_file == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
     has_file = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain files? ")).lower().strip() == 'y' else False
-if has_file != True:
+if has_file == True:
     searchurl = furl(searchurl).add({"has":"file"}).url
 
 if content == "" and skip_configuration != True:
@@ -348,10 +349,10 @@ if content == "" and skip_configuration != True:
 if content != "":
     searchurl = furl(searchurl).add({"content":f"{content}"}).url
 
-if include_nsfw == False and skip_configuration != True:
+if is_nsfw == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
-    include_nsfw = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Is NSFW Channel? ")).lower().strip() == 'y' else False
-if include_nsfw != True:
+    is_nsfw = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Is NSFW Channel? ")).lower().strip() == 'y' else False
+if is_nsfw == True:
     searchurl = furl(searchurl).add({"include_nsfw":"true"}).url
 
 now = lambda: datetime.now().strftime("%Y-%m-%d, %H:%M:%S %p")
