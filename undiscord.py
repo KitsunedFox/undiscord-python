@@ -1,5 +1,9 @@
-version = "1.9+6"
+version = "1.9.7"
 release_type = "Beta" # "Beta" or "Release"
+
+########################################
+#           U N D I S C O R D          #
+########################################
 
 from furl import furl
 import requests
@@ -11,7 +15,7 @@ import time
 from math import ceil
 from pwinput import pwinput
 import icmplib
-from random import random
+from random import random, choice
 import base64
 from progress.bar import Bar
 from progress.spinner import PixelSpinner
@@ -22,14 +26,17 @@ try:
 except ImportError:
     import json
     jsonlib = json
+import argparse
+
+########################################
+#        USER PRE-CONFIGURATION        #
+########################################
 
 token = ""
 
 email = ""
 
 password = ""
-
-user_id = ""
 
 guild_id = ""
 
@@ -41,19 +48,71 @@ channel_id = ""
 
 author_id = ""
 
-has_link = ""
+has_link = False
 
-has_file = ""
+has_file = False
 
 content = ""
 
-include_nsfw = ""
+include_nsfw = True
 
 color_support = True
 
 fetch_before = True
 
+skip_configuration = False
+
+########################################
+
 api = "https://canary.discord.com/api/v10"
+
+desc = f"UNDISCORD PYTHON - {version} | Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC. Created by HardcodedCat, Under MIT License"
+tiplist = [
+    "You can choose whether login using a Token or Email+Password.",
+    "There's an pre-configuration section inside this script, so that you don't need to configure everything again!",
+    "Undiscord Python once was based in victornpb's Javascript Undiscord",
+    "This script may result in account termination! Self-bots are against Discord TOS. Use with caution and do not abuse!",
+    "NEVER share your Auth Token with anyone! This might give full access to your Discord account!",
+    "This is the first release of Undiscord that's not cringe! :D",
+    "I am not responsible for any misuse of this script. Use it only for Privacy and Moderation!",
+    "This is the first thing i ever publish on PyPi!",
+    "This script may wipe your entire Discord server! Don't forget to specify a channel!",
+    "Bruh, i'm running out of tips. See you in the next release!"
+]
+tip = choice(tiplist)
+epilog = f"\n\n[TIP] {tip}"
+parser = argparse.ArgumentParser(description=desc, epilog=epilog)
+parser.add_argument('-t', '--token', type=str, dest='token', metavar='<token>', help="Discord Account Token (Required)", required=False)
+parser.add_argument('-e', '--email', type=str, dest='email', metavar='<email>', help="Discord Account Email (Required)", required=False)
+parser.add_argument('-p', '--password', type=str, dest='password', metavar='<password>', help="Discord Account Password (Required)", required=False)
+parser.add_argument('-g', '--guild', type=int, dest='guild_id', metavar='<guild id>', help="Guild ID (Required if not DM)", required=False)
+parser.add_argument('-c', '--channel', type=int, dest='channel_id', metavar='<channel id>', help="DM/Channel ID (Required)", required=False)
+parser.add_argument('-a', '--author', type=str, dest='author_id', metavar='<author id>', help="Messages Author ID", required=False)
+parser.add_argument('-min', '--min_id', type=int, dest='min_id', metavar='<message id>', help="Delete after an specific message", required=False)
+parser.add_argument('-max', '--max_id', type=int, dest='max_id', metavar='<message id>', help="Delete becore an specific message", required=False)
+parser.add_argument('-hl', '--has_link', action='store_true', dest='has_link', help="Fetch only messages that contains URLs?", required=False)
+parser.add_argument('-hf', '--has_file', action='store_true', dest='has_file', help="Fetch only messages that contains Files?", required=False)
+parser.add_argument('-C', '--content', type=str, dest='content', metavar='<"text">', help="Fetch only messages that contains an specific text?", required=False)
+parser.add_argument('-n', '--nsfw', action='store_true', dest='include_nsfw', help="Include NSFW Messages on Fetch?", required=False)
+parser.add_argument('-col', '--color', action='store_true', dest='color_support', help="Shows colored UI", required=False)
+parser.add_argument('-F', '--fetch', action='store_true', dest='fetch_before', help="Enables Fetch-Before Mode", required=False)
+parser.add_argument('-S', '--skip', action='store_true', dest='skip_configuration', help="Skips optional configuration prompts", required=False)
+args = parser.parse_args()
+token = args.token if args.token != None else token
+email = args.email if args.email != None else email
+password = args.password if args.password != None else password
+guild_id = str(args.guild_id) if args.guild_id != None else guild_id
+min_id = str(args.min_id) if args.min_id != None else min_id
+max_id = str(args.max_id) if args.max_id != None else max_id
+channel_id = str(args.channel_id) if args.channel_id != None else channel_id
+author_id = str(args.author_id) if args.author_id != None else author_id
+has_link = True if args.has_link == True else has_link
+has_file = True if args.has_file == True else has_file
+content = args.content if args.content != None else content
+include_nsfw = True if args.include_nsfw == True else include_nsfw
+color_support = True if args.color_support == True else color_support
+fetch_before = True if args.fetch_before == True else fetch_before
+skip_configuration = True if args.skip_configuration == True else skip_configuration
 
 if color_support == True:
     def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
@@ -115,10 +174,11 @@ urlregex += r')'
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
+version = release_type + " " + version
+
 print("\n\n\n" + mg + blurple(text="""█░█ █▄░█ █▀▄ █ █▀ █▀▀ █▀█ █▀█ █▀▄""") + yellow("""   █▀█ █▄█ ▀█▀ █░█ █▀█ █▄░█"""))
 print(mg + blurple(text="""█▄█ █░▀█ █▄▀ █ ▄█ █▄▄ █▄█ █▀▄ █▄▀""") + yellow("""   █▀▀ ░█░ ░█░ █▀█ █▄█ █░▀█""") + "\n")
 
-version = release_type + " " + version
 if release_type == "Release":
     vermark = blurplebg(text=" ❯ ")
 elif release_type == "Beta":
@@ -168,6 +228,8 @@ headers = {
 
 requestcli = requests.Session()
 requestcli.headers = headers
+
+user_id = ""
 
 def auth():
     global token
@@ -234,8 +296,8 @@ while authenticated == False:
     else:
         auth()
 
-if guild_id == "":
-    print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Skip by pressing Enter "))
+if (guild_id == "" and skip_configuration != True) or (channel_id == "" and guild_id == ""):
+    print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Leave blank "))
     guild_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Guild ID: ")).strip()
 
 while channel_id == "":
@@ -251,7 +313,7 @@ else:
     if channel_id != "":
         searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
-if author_id == "":
+if author_id == "" and skip_configuration != True:
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
 if author_id == "@me":
     searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
@@ -259,35 +321,37 @@ if author_id == "@me":
 elif author_id != "":
     searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
 
-if min_id == "":
+if min_id == "" and skip_configuration != True:
     min_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" After message with ID: ")).strip()
 if min_id != "":
     searchurl = furl(searchurl).add({"min_id":f"{min_id}"}).url
-    max_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Before message with ID: ")).strip()
-    if max_id != "":
-        searchurl = furl(searchurl).add({"max_id":f"{max_id}"}).url
 
-if has_link == "":
-    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
-    has_link = input(mgn + blackbg(text=" ❯ ") + greyple(text=" has Link? ")).strip()
-if has_link != "":
+if max_id == "" and skip_configuration != True:
+    max_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Before message with ID: ")).strip()
+if max_id != "":
+    searchurl = furl(searchurl).add({"max_id":f"{max_id}"}).url
+
+if has_link == False and skip_configuration != True:
+    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
+    has_link = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain links? ")).lower().strip() == 'y' else False
+if has_link != True:
     searchurl = furl(searchurl).add({"has":"link"}).url
 
-if has_file == "":
-    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
-    has_file = input(mgn + blackbg(text=" ❯ ") + greyple(text=" has File? ")).strip()
-if has_file != "":
+if has_file == False and skip_configuration != True:
+    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
+    has_file = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain files? ")).lower().strip() == 'y' else False
+if has_file != True:
     searchurl = furl(searchurl).add({"has":"file"}).url
 
-if content == "":
+if content == "" and skip_configuration != True:
     content = input(mgn+ blackbg(text=" ❯ ") + greyple(text=" Containing text: ")).strip()
 if content != "":
     searchurl = furl(searchurl).add({"content":f"{content}"}).url
 
-if include_nsfw == "":
-    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
-    include_nsfw = input(mgn + blackbg(text=" ❯ ") + greyple(text=" NSFW Channel? ")).strip()
-if include_nsfw != "":
+if include_nsfw == False and skip_configuration != True:
+    print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
+    include_nsfw = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Is NSFW Channel? ")).lower().strip() == 'y' else False
+if include_nsfw != True:
     searchurl = furl(searchurl).add({"include_nsfw":"true"}).url
 
 now = lambda: datetime.now().strftime("%Y-%m-%d, %H:%M:%S %p")
@@ -334,8 +398,8 @@ def search():
                 responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
             print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
             print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
-        if not response.json()["messages"] and response.json()["total_results"] != 0:
-            print(response.json())
+        if "messages" in response.json() and not response.json()["messages"] and response.json()["total_results"] != 0:
+            print(response.text)
             delay = 30
             print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue.\n"))
             time.sleep(delay)
@@ -559,6 +623,7 @@ def fetch():
         return data
     read = []
     data = fetchpage()
+    print("")
     bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
     while True:
         read.append(data)
@@ -621,9 +686,6 @@ def fetch():
 
 # Add message amount option
 # Add environment variables
-# Add command line cli
-# Add help command
-# Publish on Pypi
 
 # --------------------------------------------------
 
@@ -665,8 +727,10 @@ else:
         if remaining != 0:
             final()
 
-print(mgn + green(f"Ended at {now()}"))
-print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
+def undiscord():
+    # There's no main() here. it would break the code structure and give me headache.
+    print(mgn + green(f"Ended at {now()}"))
+    print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
 
 # UNDISCORD-PYTHON - Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.
 # https://github.com/HardcodedCat/undiscord-python

@@ -2,6 +2,10 @@
 [![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)](./LICENSE) ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black) ![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white) 
 > ⚠️ **Any tool that automates actions on user accounts, including this one, could result in account termination.** [Use at your own risk!](https://support.discordapp.com/hc/en-us/articles/115002192352-Automated-user-accounts-self-bots-)
 
+## Installation:
+
+   > > `pip install undiscord`
+
 ## Instructions:
 
 _This script might not work on Pydroid due to its limitations. Please try running on [Termux](https://github.com/HardcodedCat/termux-monet) with Python installed instead._
@@ -22,7 +26,7 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [progress - Easy to use progress bars.](https://pypi.org/project/progress/)
    > > `pip install progress`
 
-2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases)
+2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases) or install it from PyPi
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
 4. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
