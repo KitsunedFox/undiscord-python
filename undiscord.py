@@ -79,6 +79,7 @@ tiplist = [
     "I am not responsible for any misuse of this script. Use it only for Privacy and Moderation!",
     "This is the first thing i ever publish on PyPi!",
     "This script may wipe your entire Discord server! Don't forget to specify a channel!",
+    "Fetch-Before mode is automatically disabled when deleting on Guilds. It just doesn't work on guilds."
     "Bruh, i'm running out of tips. See you in the next release!"
 ]
 tip = choice(tiplist)
@@ -288,7 +289,7 @@ def auth():
             try: 
                 response = requestcli.post(f"{api}/auth/login", json=data)
             except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
-                internetfail(e)
+                internetfail(str(type(e).__name__))
                 response = None
         if response.status_code != 200:
             print(mgn + red(f"Unable to Login! Invalid credentials or requires Captcha."))
@@ -307,7 +308,7 @@ def auth():
             try: 
                 response = requestcli.get(f"{api}/users/@me")
             except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
-                internetfail(e)
+                internetfail(str(type(e).__name__))
                 response = None
         if response.status_code != 200:
             print(mgn + red(f"Invalid Token! Please try again."))
@@ -420,7 +421,7 @@ def search():
         try:
             response = requestcli.get(searchurl, timeout=5)
         except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
-            internetfail(e)
+            internetfail(str(type(e).__name__))
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             read = [response.json()]
         elif response.status_code == 202:
@@ -446,28 +447,12 @@ def search():
             read = None
     ping = icmplib.ping("canary.discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
-    def deletable(response : str):
-        if "'type': 0" in response: return True
-        elif "'type': 6" in response: return True
-        elif "'type': 7" in response: return True
-        elif "'type': 8" in response: return True
-        elif "'type': 9" in response: return True
-        elif "'type': 10" in response: return True
-        elif "'type': 11" in response: return True
-        elif "'type': 12" in response: return True
-        elif "'type': 18" in response: return True
-        elif "'type': 19" in response: return True
-        elif "'type': 20" in response: return True
-        elif "'type': 22" in response: return True
-        elif "'type': 23" in response: return True
-        elif "'type': 24" in response: return True
-        elif "'type': 25" in response: return True
-        elif "'type': 26" in response: return True
-        elif "'type': 27" in response: return True
-        elif "'type': 28" in response: return True
-        elif "'type': 29" in response: return True
-        elif "'type': 31" in response: return True
-        else: return False
+    def deletable(response: str):
+        valid_types = ["0", "6", "7", "8", "9", "10", "11", "12", "18", "19", "20", "22", "23", "24", "25", "26", "27", "28", "29", "31"]
+        for valid_type in valid_types:
+            if f"'type': {valid_type}" in response:
+                return True
+        return False
     isdeletable = deletable(str(response.json()))
     if remaining == None:
         remaining = int((read)[0]["total_results"])
@@ -511,39 +496,41 @@ def deleteseq(read = None, msglist = None):
     global basedelay
     global searchurl
     typeblocklist = [1, 2, 3, 4, 5, 14, 15, 16, 17, 21, 32]
-    def typelist(type : int):
-        if type == 0: return "DEFAULT"
-        elif type == 1: return "RECIPIENT_ADD"
-        elif type == 2: return "RECIPIENT_REMOVE"
-        elif type == 3: return "CALL"
-        elif type == 4: return "CHANNEL_NAME_CHANGE"
-        elif type == 5: return "CHANNEL_ICON_CHANGE"
-        elif type == 6: return "CHANNEL_PINNED_MESSAGE"
-        elif type == 7: return "USER_JOIN"
-        elif type == 8: return "GUILD_BOOST"
-        elif type == 9: return "GUILD_BOOST_TIER_1"
-        elif type == 10: return "GUILD_BOOST_TIER_2"
-        elif type == 11: return "GUILD_BOOST_TIER_3"
-        elif type == 12: return "CHANNEL_FOLLOW_ADD"
-        elif type == 14: return "GUILD_DISCOVERY_DISQUALIFIED"
-        elif type == 15: return "GUILD_DISCOVERY_REQUALIFIED"
-        elif type == 16: return "GUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING"
-        elif type == 17: return "GUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING"
-        elif type == 18: return "THREAD_CREATED"
-        elif type == 19: return "REPLY"
-        elif type == 20: return "CHAT_INPUT_COMMAND"
-        elif type == 21: return "THREAD_STARTER_MESSAGE"
-        elif type == 22: return "GUILD_INVITE_REMINDER"
-        elif type == 23: return "CONTEXT_MENU_COMMAND"
-        elif type == 24: return "AUTO_MODERATION_ACTION*"
-        elif type == 25: return "ROLE_SUBSCRIPTION_PURCHASE"
-        elif type == 26: return "INTERACTION_PREMIUM_UPSELL"
-        elif type == 27: return "STAGE_START"
-        elif type == 28: return "STAGE_END"
-        elif type == 29: return "STAGE_SPEAKER"
-        elif type == 31: return "STAGE_TOPIC"
-        elif type == 32: return "GUILD_APPLICATION_PREMIUM_SUBSCRIPTION"
-        else: return "UNKNOWN"
+    def typelist(type: int):
+        type_map = {
+            0: "DEFAULT",
+            1: "RECIPIENT_ADD",
+            2: "RECIPIENT_REMOVE",
+            3: "CALL",
+            4: "CHANNEL_NAME_CHANGE",
+            5: "CHANNEL_ICON_CHANGE",
+            6: "CHANNEL_PINNED_MESSAGE",
+            7: "USER_JOIN",
+            8: "GUILD_BOOST",
+            9: "GUILD_BOOST_TIER_1",
+            10: "GUILD_BOOST_TIER_2",
+            11: "GUILD_BOOST_TIER_3",
+            12: "CHANNEL_FOLLOW_ADD",
+            14: "GUILD_DISCOVERY_DISQUALIFIED",
+            15: "GUILD_DISCOVERY_REQUALIFIED",
+            16: "GUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING",
+            17: "GUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING",
+            18: "THREAD_CREATED",
+            19: "REPLY",
+            20: "CHAT_INPUT_COMMAND",
+            21: "THREAD_STARTER_MESSAGE",
+            22: "GUILD_INVITE_REMINDER",
+            23: "CONTEXT_MENU_COMMAND",
+            24: "AUTO_MODERATION_ACTION*",
+            25: "ROLE_SUBSCRIPTION_PURCHASE",
+            26: "INTERACTION_PREMIUM_UPSELL",
+            27: "STAGE_START",
+            28: "STAGE_END",
+            29: "STAGE_SPEAKER",
+            31: "STAGE_TOPIC",
+            32: "GUILD_APPLICATION_PREMIUM_SUBSCRIPTION"
+        }
+        return type_map.get(type, "UNKNOWN")        
     def deletemsg(message_id, message_author, message_content, message_date, message_type, message_channel, typestr):
         global index
         global total
@@ -568,7 +555,7 @@ def deleteseq(read = None, msglist = None):
             try: 
                 response = requestcli.delete(f"{api}/channels/{message_channel}/messages/{message_id}", timeout=5)
             except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
-                internetfail(e)
+                internetfail(str(type(e).__name__))
                 response = None
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             printmsg()
@@ -670,7 +657,7 @@ def fetch():
             try: 
                 response = requestcli.get(f"{searchurl}")
             except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
-                internetfail(e)
+                internetfail(str(type(e).__name__))
                 response = None
         data = response.json()
         return data
@@ -741,6 +728,7 @@ def fetch():
 # Add message amount option
 # Add environment variables
 # Detect indexing state on fetch-before
+# Detect internet failures on fetch
 
 # --------------------------------------------------
 
