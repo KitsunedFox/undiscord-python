@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import time
 from math import ceil
+from pwinput import pwinput
 
 def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
 # print(colored(200, 20, 200, 0, 0, 0, "Hello World"))
@@ -52,7 +53,7 @@ print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░�
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.0 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.1 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
 token = None
 
@@ -63,7 +64,7 @@ def checktoken():
 
 def asktoken():
     global token
-    token = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: ")).strip()
+    token = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: "))).strip()
     checktoken()
 
 asktoken()
@@ -72,41 +73,27 @@ headers = {
     "Authorization": f"{token}"
     }
 
-print(mgn + blurplebg(text=" DM ") + blackbg(text=" Type @me ") + "     " + blurplebg(text=" GUILD ") + blackbg(text=" Type Guild ID "))
+print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Skip by pressing Enter "))
 
-guild_id = None
+guild_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Guild ID: ")).strip()
 
-def checkguild_id():
-    if guild_id == "":
-        print(mgn + red("You cannot skip this input!"))
-        askguild_id()
-
-def askguild_id():
-    global guild_id
-    guild_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Guild ID: ")).strip()
-    checkguild_id()
-
-askguild_id()
-
-channel_id = None
-
-def checkchannel_id():
-    if channel_id == "":
-        print(mgn + red("You cannot skip this input!"))
-        askchannel_id()
-
-def askchannel_id():
-    global channel_id
-    channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
-    checkchannel_id()
-
-askchannel_id()
-
-if guild_id == "@me":
+if guild_id == "":
+    channel_id = None
+    def checkchannel_id():
+        if channel_id == "":
+            print(mgn + red("You cannot skip this input!"))
+            askchannel_id()
+    def askchannel_id():
+        global channel_id
+        channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
+        checkchannel_id()
+    askchannel_id()
     searchurl = f"https://discord.com/api/v9/channels/{channel_id}/messages/search?"
 else:
+    channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
     searchurl = f"https://discord.com/api/v9/guilds/{guild_id}/messages/search?"
-    searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
+    if channel_id != "":
+        searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
 
 author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
@@ -120,9 +107,13 @@ if min_id != "":
     if max_id != "":
         searchurl = furl(searchurl).add({"max_id":f"{max_id}"}).url
 
+print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
+
 has_link = input(mgn + blackbg(text=" ❯ ") + greyple(text=" has Link? ")).strip()
 if has_link != "":
     searchurl = furl(searchurl).add({"has":"link"}).url
+
+print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
 
 has_file = input(mgn + blackbg(text=" ❯ ") + greyple(text=" has File? ")).strip()
 if has_file != "":
@@ -131,6 +122,8 @@ if has_file != "":
 content = input(mgn+ blackbg(text=" ❯ ") + greyple(text=" Containing text: ")).strip()
 if content != "":
     searchurl = furl(searchurl).add({"content":f"{content}"}).url
+
+print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type anything ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Skip by pressing Enter "))
 
 include_nsfw = input(mgn + blackbg(text=" ❯ ") + greyple(text=" NSFW Channel? ")).strip()
 if include_nsfw != "":
@@ -154,7 +147,8 @@ def search():
     #print(response.json())
     if response.status_code == 202:
         delay = [response.json()][0]["retry_after"]
-        print(mg + yellow(f"This channel wasn't indexed, waiting {int(delay*1000)}ms for discord to index it...\n"))
+        print(mg + yellow(f"This channel wasn't indexed."))
+        print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
         time.sleep(delay)
         response = requests.get(searchurl, headers = headers)
     ping = int(response.elapsed.total_seconds() *1000)
@@ -174,28 +168,55 @@ def search():
         print(mg + yellow(f"Ended because API returned an empty page"))
     return read    
 
+basedelay = 0.55
+
 def deleteseq(read):
     #pgsize = len((read)[0]["messages"])
     global index
     global total
     global remaining
+    global basedelay
+    global channel_id
     for msg in (read)[0]["messages"]:
         timestamp = (msg)[0]["timestamp"]
         index += 1
         remaining -= 1
         num = f"({index}/{total})"
         message_id = (msg)[0]["id"]
+        if channel_id == "":
+            chid = int((msg)[0]["channel_id"])
+        else:
+            chid = channel_id
         print(mgn + num + red(" Deleting ID: ") + greyple(message_id))
         print(" "*len(num) + "     " + (msg)[0]["author"]["username"] + "#" + (msg)[0]["author"]["discriminator"] + " — " + datetime.fromisoformat(timestamp).strftime("%Y-%m-%d, %H:%M:%S %p"))
         print(" "*len(num) + "     " + "Content: " + greyple((msg)[0]["content"] + "\n"))
-        response = requests.delete(f"https://discord.com/api/v9/channels/{channel_id}/messages/{message_id}", headers = headers)
+        response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
         if response.status_code == 429:
             delay = [response.json()][0]["retry_after"]
             remaining += 1
             index -= 1
+            basedelay += 0.15
             print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
+            print(mg + yellow(f"Adjusted delete delay to {basedelay}ms."))
             time.sleep(delay)
-        time.sleep(0.5)
+        time.sleep(basedelay)
+
+# TODO: 
+# 1.  Add more error messages and exceptions
+
+# 2. Filter message types (allow only type 0, 19 and make a input for user to choose to delete type 6)
+#### Message Types: https://discord.com/developers/docs/resources/channel
+#### (Filtering also fixes inconsistencies with total messages and remaining messages)
+# 3. Make a UI Interface for multiple options on "has?"
+# 4. Decrease request delay after some successfull requests
+
+#Deletion Request:
+# 204 = SUCCESS
+
+# Msg types: 
+#  1 - Default
+# 19 - Reply
+# 6 - Pinned
 
 read = search()
 divided = ceil(int(total) / 25)
@@ -214,7 +235,5 @@ if index != total:
 print(mgn + green(f"Ended at {now()}"))
 print(mg + greyple(f"Deleted {total} messages"))
 
-# TODO: Add more error messages and exceptions
-
-#Delete req:
-# 204 = SUCCESS
+# UNDISCORD.py - Bulk delete discord messages.
+# https://github.com/HelpyFazbear/deleteDiscordMessages.py
