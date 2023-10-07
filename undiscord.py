@@ -10,6 +10,7 @@ from math import ceil
 from pwinput import pwinput
 import icmplib
 from random import random
+import base64
 
 try:
     import ujson
@@ -19,6 +20,12 @@ except ImportError:
     jsonlib = json
 
 token = ""
+
+email = ""
+
+password = ""
+
+user_id = ""
 
 guild_id = ""
 
@@ -86,24 +93,83 @@ print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░�
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+2 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+3 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
-def checktoken():
-    if token == "":
-        print(mgn + red("You cannot skip this input!"))
-        asktoken()
+clientinfo = '''{
+    "os": "Windows",
+    "browser": "Discord Client",
+    "release_channel": "canary",
+    "client_version": "1.0.49",
+    "os_version": "10.0.22621",
+    "os_arch": "x64",
+    "system_locale": "en-US",
+    "client_build_number": "152450",
+    "client_event_source": null
+}'''
 
-def asktoken():
-    global token
-    token = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: "))).strip()
-    checktoken()
-
-if token == "":
-    asktoken()
+xsuper = base64.b64encode(str(clientinfo).encode()).decode()
 
 headers = {
-    "Authorization": f"{token}"
-    }
+    "X-Super-Properties": f"{xsuper}",
+    "accept": "*/*",
+    "accept-language": "en-US",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+    } 
+
+def checklogin():
+    if token == "" and (email == "" or password == ""):
+        print(mgn + red("You must provide a token or login credentials!"))
+        asklogin()
+    else:
+        auth()
+
+def asklogin():
+    global email
+    global password
+    global token
+    token = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: "))).strip()
+    if token == "":
+        email = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Email: ")).strip()
+        password = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Password: "))).strip()
+        checklogin()
+    else:
+        auth()
+
+def auth():
+    global headers
+    global user_id
+    if token == "":
+        data = {
+            "login": email,
+            "password": password,
+            "undelete": "false", 
+            "login_source": None,
+            "gift_code_sku_id": None
+        }
+        headers["referer"] = "https://discord.com/login"
+        headers["x-context-properties"] = "eyJsb2NhdGlvbiI6IkxvZ2luIn0="
+        response = requests.post("https://canary.discord.com/api/v10/auth/login", json=data, headers=headers)
+        if response.status_code != 200:
+            print(mgn + red(f"Unable to Login! Invalid credentials or requires Captcha."))
+            asklogin()
+        result = jsonlib.loads(response.text)
+        headers["Authorization"] = result["token"]
+        user_id = result["user_id"]
+        headers.pop("referer", None)
+        headers.pop("x-context-properties", None)
+    else:
+        headers["Authorization"] = f"{token}"
+        response = requests.get("https://canary.discord.com/api/v10/users/@me", headers=headers)
+        if response.status_code != 200:
+            print(mgn + red(f"Invalid Token! Please try again."))
+            asklogin()
+        result = jsonlib.loads(response.text)
+        user_id = result["id"]
+
+if token == "" and (email == "" or password == ""):
+    asklogin()
+else:
+    auth()
 
 if guild_id == "":
     print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Skip by pressing Enter "))
@@ -120,16 +186,18 @@ if guild_id == "":
         checkchannel_id()
     if channel_id == "":
         askchannel_id()
-    searchurl = f"https://discord.com/api/v9/channels/{channel_id}/messages/search?limit=25"
+    searchurl = f"https://canary.discord.com/api/v10/channels/{channel_id}/messages/search?limit=25"
 else:
     channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
-    searchurl = f"https://discord.com/api/v9/guilds/{guild_id}/messages/search?limit=25"
+    searchurl = f"https://canary.discord.com/api/v10/guilds/{guild_id}/messages/search?limit=25"
     if channel_id != "":
         searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
 if author_id == "":
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
-if author_id != "":
+if author_id == "@me":
+    searchurl += f"&author_id={user_id}"
+elif author_id != "":
     searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
 
 if min_id == "":
@@ -219,7 +287,7 @@ def search():
             responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
         print(mgn + num + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
         print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
-    ping = icmplib.ping("discord.com", count=1, privileged=False)
+    ping = icmplib.ping("canary.discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
     def deletable(response : str):
         if "'type': 0" in response: return True
@@ -326,10 +394,10 @@ def deleteseq(read = None, msglist = None):
         if str(f"{message_id}") in pending.keys():
             del pending[f"{message_id}"]
         try: 
-            response = requests.delete(f"https://discord.com/api/v9/channels/{message_channel}/messages/{message_id}", headers = headers)
+            response = requests.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", headers = headers)
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
-            response = requests.delete(f"https://discord.com/api/v9/channels/{message_channel}/messages/{message_id}", headers = headers)
+            response = requests.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", headers = headers)
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             printmsg()
             reqsuccess += 1
@@ -430,7 +498,7 @@ def internetfail():
     print(mg)
     time.sleep(30)
     try:
-        requests.get("https://www.discord.com/api/v9/")
+        requests.get("https://canary.discord.com/api/v10/")
         cattempt = 1
         print(mg + green(f"Connection successfully established!"))
         print(mg)
@@ -454,6 +522,7 @@ def internetfail():
 # TODO: UI Update (ver 2.0.0)
 # TODO2: Enhance message search exceptions
 # RecursionError
+# TODO3: Jupyter Notebook
 
 # --------------------------------------------------
 
