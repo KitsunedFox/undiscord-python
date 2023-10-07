@@ -4,16 +4,19 @@ from requests.exceptions import ConnectionError
 from requests.exceptions import RequestException
 from http.client import RemoteDisconnected
 from urllib3.exceptions import ProtocolError
-try:
-    import ujson as json
-except ImportError:
-    import json
 from datetime import datetime
 import time
 from math import ceil
 from pwinput import pwinput
 import icmplib
 from random import randrange
+
+try:
+    import ujson
+    jsonlib = ujson
+except ImportError:
+    import json
+    jsonlib = json
 
 token = ""
 
@@ -213,7 +216,7 @@ def search():
         try:
             responsejson = response.json()
         except:
-            responsejson = json.loads(json.dumps({'message': 'The api returned no error message.'}))
+            responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
         print(mgn + num + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
         print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
     ping = icmplib.ping("discord.com", count=1, privileged=False)
@@ -353,7 +356,7 @@ def deleteseq(read = None, msglist = None):
                 try:
                     responsejson = response.json()
                 except:
-                    responsejson = json.loads(json.dumps({'message': 'The api returned no error message.'}))
+                    responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
             # [responsejson][0]["code"] == 50083 / statuscode 400
                 print(mgn + num + red(f" Couldn't delete this message. Status code: " + str(response.status_code)))
                 print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
