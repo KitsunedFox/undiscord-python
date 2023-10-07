@@ -9,7 +9,7 @@ import time
 from math import ceil
 from pwinput import pwinput
 import icmplib
-from random import randrange
+from random import random
 
 try:
     import ujson
@@ -346,7 +346,7 @@ def deleteseq(read = None, msglist = None):
                 if delay <= 2:
                     basedelay += delay
                 else:
-                    basedelay += (round((delay / 1.85)) + float((f"0.{randrange(999)}")))
+                    basedelay += (round((delay / 1.85)) + float((f"0.{int(999 * random())}")))
                 reqsuccess = 0
                 print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
                 print(mg + yellow(f"Adjusted delete delay to ≈{int(basedelay*1000)}ms."))
@@ -365,14 +365,14 @@ def deleteseq(read = None, msglist = None):
                 if str(f"{message_id}") not in pending.keys():
                     searchurl = furl(origsearchurl).remove(['max_id']).url
                     searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
-        if basedelay >= 1 and reqsuccess >= (6 + randrange(6)):
+        if basedelay >= 1 and reqsuccess >= (6 + int(6 * random())):
             reqsuccess = 0
             if basedelay >= 4:
-                basedelay = round((basedelay / (1 + float((f"0.{randrange(999)}")))))
+                basedelay = round((basedelay / (1 + float((f"0.{int(999 * random())}")))))
             else:
-                basedelay -= float((f"0.{randrange(999)}"))
+                basedelay -= float((f"0.{int(999 * random())}"))
             print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
-        time.sleep((basedelay + float((f"0.{randrange(999)}"))))
+        time.sleep((basedelay + float((f"0.{int(999 * random())}"))))
     if read != None:
         for msg in (read)[0]["messages"]:
             message_id = (msg)[0]["id"]
