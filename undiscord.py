@@ -1,4 +1,4 @@
-version = "1.9.9"
+version = "1.46" # git rev-list --count --all
 release_type = "Beta" # "Beta" or "Release"
 
 ########################################
@@ -54,7 +54,7 @@ has_file = None
 
 content = ""
 
-is_nsfw = True
+is_nsfw = None
 
 color_support = True
 
@@ -66,7 +66,9 @@ skip_configuration = None
 
 api = "https://canary.discord.com/api/v10"
 
-desc = f"UNDISCORD PYTHON - {version} | Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC. Created by HardcodedCat, Under MIT License"
+vertag = release_type + " " + version
+
+desc = f"UNDISCORD PYTHON - {vertag} | Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC. Created by HardcodedCat, Under MIT License"
 tiplist = [
     "You can choose whether login using a Token or Email+Password.",
     "There's an pre-configuration section inside this script, so that you don't need to configure everything again!",
@@ -81,38 +83,66 @@ tiplist = [
 ]
 tip = choice(tiplist)
 epilog = f"\n\n[TIP] {tip}"
+
 parser = argparse.ArgumentParser(description=desc, epilog=epilog)
-parser.add_argument('-t', '--token', type=str, dest='token', metavar='<token>', help="Discord Account Token (Required)", required=False)
-parser.add_argument('-e', '--email', type=str, dest='email', metavar='<email>', help="Discord Account Email (Required)", required=False)
-parser.add_argument('-p', '--password', type=str, dest='password', metavar='<password>', help="Discord Account Password (Required)", required=False)
-parser.add_argument('-g', '--guild', type=int, dest='guild_id', metavar='<guild id>', help="Guild ID (Required if not DM)", required=False)
-parser.add_argument('-c', '--channel', type=int, dest='channel_id', metavar='<channel id>', help="DM/Channel ID (Required)", required=False)
-parser.add_argument('-a', '--author', type=str, dest='author_id', metavar='<author id>', help="Messages Author ID", required=False)
-parser.add_argument('-min', '--min_id', type=int, dest='min_id', metavar='<message id>', help="Delete after an specific message", required=False)
-parser.add_argument('-max', '--max_id', type=int, dest='max_id', metavar='<message id>', help="Delete becore an specific message", required=False)
-parser.add_argument('-hl', '--has_link', action='store_true', dest='has_link', help="Fetch only messages that contains URLs?", required=False)
-parser.add_argument('-hf', '--has_file', action='store_true', dest='has_file', help="Fetch only messages that contains Files?", required=False)
-parser.add_argument('-C', '--content', type=str, dest='content', metavar='<"text">', help="Fetch only messages that contains an specific text?", required=False)
-parser.add_argument('-n', '--nsfw', action='store_true', dest='is_nsfw', help="Is NSFW Channel?", required=False)
-parser.add_argument('-col', '--color', action='store_true', dest='color_support', help="Shows colored UI", required=False)
-parser.add_argument('-F', '--fetch', action='store_true', dest='fetch_before', help="Enables Fetch-Before Mode", required=False)
-parser.add_argument('-S', '--skip', action='store_true', dest='skip_configuration', help="Skips optional configuration prompts", required=False)
+
+args_list = [
+    ('-t', '--token', str, '<token>', "Discord Account Token (Required)"),
+    ('-e', '--email', str, '<email>', "Discord Account Email (Required)"),
+    ('-p', '--password', str, '<password>', "Discord Account Password (Required)"),
+    ('-g', '--guild', int, '<guild id>', "Guild ID (Required if not DM)"),
+    ('-c', '--channel', int, '<channel id>', "DM/Channel ID (Required)"),
+    ('-a', '--author', str, '<author id>', "Messages Author ID"),
+    ('-min', '--min_id', int, '<message id>', "Delete after a specific message"),
+    ('-max', '--max_id', int, '<message id>', "Delete before a specific message"),
+    ('-C', '--content', str, '"text"', "Fetch only messages that contain a specific text?")
+]
+for arg_short, arg_long, arg_type, arg_metavar, arg_help in args_list:
+    parser.add_argument(arg_short, arg_long, type=arg_type, dest=arg_long.lstrip('-'), metavar=arg_metavar, help=arg_help, required=False)
+
+args_list = [
+    ('-hl', '--has_link', True, "Fetch only messages that contain URLs?"),
+    ('-hf', '--has_file', True, "Fetch only messages that contain Files?"),
+    ('-n', '--nsfw', True, "Is NSFW Channel?"),
+    ('-NC', '--nocolor', False, "Disable colored UI"),
+    ('-NF', '--nofetch', False, "Disable Fetch-Before Mode"),
+    ('-S', '--skip', True, "Skips optional configuration prompts")
+]
+for arg_short, arg_long, arg_const, arg_help in args_list:
+    parser.add_argument(arg_short, arg_long, action='store_const', const=arg_const, dest=arg_long.lstrip('-'), help=arg_help, required=False)
+    
 args = parser.parse_args()
-token = args.token if args.token != None else token
-email = args.email if args.email != None else email
-password = args.password if args.password != None else password
-guild_id = str(args.guild_id) if args.guild_id != None else guild_id
-min_id = str(args.min_id) if args.min_id != None else min_id
-max_id = str(args.max_id) if args.max_id != None else max_id
-channel_id = str(args.channel_id) if args.channel_id != None else channel_id
-author_id = str(args.author_id) if args.author_id != None else author_id
-has_link = True if args.has_link == True else has_link if has_link != None else False
-has_file = True if args.has_file == True else has_file if has_file != None else False
-content = args.content if args.content != None else content
-is_nsfw = True if args.is_nsfw == True else is_nsfw if is_nsfw != None else False
-color_support = True if args.color_support == True else color_support if color_support != None else False
-fetch_before = True if args.fetch_before == True else fetch_before if fetch_before != None else False
-skip_configuration = True if args.skip_configuration == True else skip_configuration if skip_configuration != None else False
+
+attribute_mapping = {
+    'token': args.token,
+    'email': args.email,
+    'password': args.password,
+    'guild_id': args.guild,
+    'min_id': args.min_id,
+    'max_id': args.max_id,
+    'channel_id': args.channel,
+    'author_id': args.author,
+    'content': args.content
+    
+}
+for attr, value in attribute_mapping.items():
+    if value != None:
+        globals()[attr] = str(value)
+
+attribute_mapping = {
+    'has_link': args.has_link,
+    'has_file': args.has_file,
+    'is_nsfw': args.nsfw,
+    'color_support': args.nocolor,
+    'fetch_before': args.nofetch,
+    'skip_configuration': args.skip
+}
+for attr, value in attribute_mapping.items():
+    if value != None:
+        globals()[attr] = value
+    elif globals()[attr] == None:
+        globals()[attr] = False
+
 
 if color_support == True:
     def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
@@ -172,8 +202,6 @@ urlregex += r')'
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-version = release_type + " " + version
-
 print("\n\n" + mg + blurple(text="""█░█ █▄░█ █▀▄ █ █▀ █▀▀ █▀█ █▀█ █▀▄""") + yellow("""   █▀█ █▄█ ▀█▀ █░█ █▀█ █▄░█"""))
 print(mg + blurple(text="""█▄█ █░▀█ █▄▀ █ ▄█ █▄▄ █▄█ █▀▄ █▄▀""") + yellow("""   █▀▀ ░█░ ░█░ █▀█ █▄█ █░▀█""") + "\n")
 
@@ -183,14 +211,16 @@ elif release_type == "Beta":
     vermark = yellowbg(text=" ❯ ")
 else:
     vermark = blackbg(text=" ❯ ")
-print(mg + vermark + blackbg(text=f" {version} ") + "                                 "[:-len(version)] + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + vermark + blackbg(text=f" {vertag} ") + "                                 "[:-len(vertag)] + blurplebg(text=" Bulk delete messages ") + "\n")
 
-def internetfail():
+def internetfail(exception):
+    if exception == None:
+        exception = ""
     cattempt = 1
     connected = False
     while connected == False:
         num = f"({str(cattempt)})"
-        print(mg + num + red(f" Connection Failure!"))
+        print(mg + num + red(f" Connection Failure! {exception}"))
         print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
         print(mg)
         time.sleep(30)
@@ -199,9 +229,16 @@ def internetfail():
             print(mg + green(f"Connection successfully established!"))
             print(mg)
             connected = True
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
+        except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
             cattempt += 1
     return
+
+
+latestver = requests.get('https://pypi.org/pypi/undiscord/json').json()['info']['version']
+
+if float(version) < float(latestver):
+    print(mg + yellowbg(text=" OUTDATED! ") + blackbg(text=f" Please install the latest version of undiscord. ") + "\n")
+
 
 clientinfo = '''{
     "os": "Windows",
@@ -250,8 +287,8 @@ def auth():
         while response == None:
             try: 
                 response = requestcli.post(f"{api}/auth/login", json=data)
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
-                internetfail()
+            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                internetfail(e)
                 response = None
         if response.status_code != 200:
             print(mgn + red(f"Unable to Login! Invalid credentials or requires Captcha."))
@@ -269,8 +306,8 @@ def auth():
         while response == None:
             try: 
                 response = requestcli.get(f"{api}/users/@me")
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
-                internetfail()
+            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                internetfail(e)
                 response = None
         if response.status_code != 200:
             print(mgn + red(f"Invalid Token! Please try again."))
@@ -318,7 +355,7 @@ else:
 
 if author_id == "" and skip_configuration != True:
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
-if author_id == "@me":
+if author_id == "@me" or guild_id == "":
     searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
     author_id = user_id
 elif author_id != "":
@@ -381,8 +418,8 @@ def search():
     while read == None:
         try:
             response = requestcli.get(searchurl, timeout=5)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
-            internetfail()
+        except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+            internetfail(e)
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             read = [response.json()]
         elif response.status_code == 202:
@@ -401,7 +438,7 @@ def search():
                 responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
             print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
             print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
-        if "messages" in response.json() and not response.json()["messages"] and response.json()["total_results"] != 0:
+        if "messages" in response.json() and not response.json()["messages"] and response.json()["total_results"] > 1:
             delay = 30
             print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue.\n"))
             time.sleep(delay)
@@ -423,6 +460,12 @@ def search():
         elif "'type': 22" in response: return True
         elif "'type': 23" in response: return True
         elif "'type': 24" in response: return True
+        elif "'type': 25" in response: return True
+        elif "'type': 26" in response: return True
+        elif "'type': 27" in response: return True
+        elif "'type': 28" in response: return True
+        elif "'type': 29" in response: return True
+        elif "'type': 31" in response: return True
         else: return False
     isdeletable = deletable(str(response.json()))
     if remaining == None:
@@ -466,7 +509,7 @@ def deleteseq(read = None, msglist = None):
     global failed
     global basedelay
     global searchurl
-    typeblocklist = [1, 2, 3, 4, 5, 14, 15, 16, 17, 21]
+    typeblocklist = [1, 2, 3, 4, 5, 14, 15, 16, 17, 21, 32]
     def typelist(type : int):
         if type == 0: return "DEFAULT"
         elif type == 1: return "RECIPIENT_ADD"
@@ -492,6 +535,13 @@ def deleteseq(read = None, msglist = None):
         elif type == 22: return "GUILD_INVITE_REMINDER"
         elif type == 23: return "CONTEXT_MENU_COMMAND"
         elif type == 24: return "AUTO_MODERATION_ACTION*"
+        elif type == 25: return "ROLE_SUBSCRIPTION_PURCHASE"
+        elif type == 26: return "INTERACTION_PREMIUM_UPSELL"
+        elif type == 27: return "STAGE_START"
+        elif type == 28: return "STAGE_END"
+        elif type == 29: return "STAGE_SPEAKER"
+        elif type == 31: return "STAGE_TOPIC"
+        elif type == 32: return "GUILD_APPLICATION_PREMIUM_SUBSCRIPTION"
         else: return "UNKNOWN"
     def deletemsg(message_id, message_author, message_content, message_date, message_type, message_channel, typestr):
         global index
@@ -516,8 +566,8 @@ def deleteseq(read = None, msglist = None):
         while response == None:
             try: 
                 response = requestcli.delete(f"{api}/channels/{message_channel}/messages/{message_id}", timeout=5)
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
-                internetfail()
+            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                internetfail(e)
                 response = None
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             printmsg()
@@ -618,29 +668,30 @@ def fetch():
         while response == None:
             try: 
                 response = requestcli.get(f"{searchurl}")
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
-                internetfail()
+            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                internetfail(e)
                 response = None
         data = response.json()
         return data
     read = []
-    data = fetchpage()
     print("")
+    a = 0
     bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
-    while True:
+    while a < total:
+        data = fetchpage()
         read.append(data)
+        searchurl = furl(searchurl).remove(['before']).url
         if len(data) < 50:
-            break
+            pass
         else:
             last = data[49]['id']
-        searchurl = furl(searchurl).remove(['before']).url
-        searchurl = furl(searchurl).add({"before":f"{last}"}).url
-        data = fetchpage()
+            searchurl = furl(searchurl).add({"before":f"{last}"}).url
+        a += len(data)
         bar.next()
     bar.next()
     bar.finish()
-    msgs = [[x] for y in read for x in y]
     print("")
+    msgs = [[x] for y in read for x in y]
     spinner = PixelSpinner(f"    Filtering ")
     if min_id != "":
         for index, msg in enumerate(msgs):
@@ -684,11 +735,11 @@ def fetch():
 # So that the "message floor" raises everytime the script gets a new messages list with undeletable messages, and user-defined max_url may be respected.
 
 # TODO: UI Update (ver 2.0.0)
-# TODO2: Enhance message search exceptions
 # TODO3: Jupyter Notebook
 
 # Add message amount option
 # Add environment variables
+# Detect indexing state on fetch-before
 
 # --------------------------------------------------
 
@@ -730,10 +781,12 @@ else:
         if remaining != 0:
             final()
 
+print(mgn + green(f"Ended at {now()}"))
+print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
+
 def undiscord():
     # There's no main() here. it would break the code structure and give me headache.
-    print(mgn + green(f"Ended at {now()}"))
-    print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
+    pass
 
 # UNDISCORD-PYTHON - Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.
 # https://github.com/HardcodedCat/undiscord-python

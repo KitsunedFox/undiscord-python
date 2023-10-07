@@ -32,6 +32,13 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
 5. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
 - For additional help, run `undiscord --help`
+##### Usage:
+```
+undiscord.py [-h] [-t <token>] [-e <email>] [-p <password>]
+[-g <guild id>] [-c <channel id>] [-a <author id>]
+[-min <message id>] [-max <message id>] [-C "text"]
+[-hl] [-hf] [-n] [-NC] [-NF] [-S]
+```
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
 
