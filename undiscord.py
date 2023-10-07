@@ -51,36 +51,23 @@ else:
         else:
             return "[{}]".format(text)
 
-def blurple(text : str):
-    return colored(r = 88, g=101, b=242, text=text)
+blurple = lambda text: colored(r = 88, g=101, b=242, text=text)
 
-def blurplebg(text : str):
-    return colored(255,255,255, rb = 88, gb=101, bb=242, text=text)
+blurplebg = lambda text: colored(255,255,255, rb = 88, gb=101, bb=242, text=text)
 
-def greyple(text : str):
-    return colored(r = 153, g=170, b=181, text=text)
+greyple = lambda text: colored(r = 153, g=170, b=181, text=text)
 
-def blackbg(text : str):
-    return colored(255,255,255, rb = 35, gb=39, bb=42, text=text)
+blackbg = lambda text: colored(255,255,255, rb = 35, gb=39, bb=42, text=text)
 
-def greenbg(text : str):
-    return colored(0,0,0, rb = 87, gb=242, bb=135, text=text)
+greenbg = lambda text: colored(0,0,0, rb = 87, gb=242, bb=135, text=text)
 
-def green(text : str):
-    return colored(87, 242, 135, text=text)
+green = lambda text: colored(87, 242, 135, text=text)
 
-def red(text : str):
-    return colored(237, 66, 69, text=text)
+red = lambda text: colored(237, 66, 69, text=text)
 
-def yellow(text : str):
-    return colored(254, 231, 92, text=text)
+yellow = lambda text: colored(254, 231, 92, text=text)
 
-def zerofy(number : int):
-    # Turns all negative tumbers into zero
-    if number < 0:
-        return 0
-    else:
-        return number
+zerofy = lambda number: 0 if number < 0 else number # Turns all negative tumbers into zero
 
 #print("\n" + blurple(text=f"""{pyfiglet.figlet_format("Undiscord", font="standard")}"""))
 
@@ -173,8 +160,7 @@ if include_nsfw == "":
 if include_nsfw != "":
     searchurl = furl(searchurl).add({"include_nsfw":"true"}).url
 
-def now():
-    return datetime.now().strftime("%Y-%m-%d, %H:%M:%S %p")
+now = lambda: datetime.now().strftime("%Y-%m-%d, %H:%M:%S %p")
 
 start = input(mgn + greenbg(text=" Press ENTER to start "))
 
