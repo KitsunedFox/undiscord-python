@@ -18,6 +18,9 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
 
    > [icmplib - The power to forge ICMP packets and do ping and traceroute.](https://pypi.org/project/icmplib/)
    > > `pip install icmplib`
+   
+   > [progress - Easy to use progress bars.](https://pypi.org/project/progress/)
+   > > `pip install progress`
 
 2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
