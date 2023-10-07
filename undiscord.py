@@ -53,7 +53,7 @@ print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░�
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.1 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Release 1.2 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
 
 token = None
 
@@ -88,10 +88,10 @@ if guild_id == "":
         channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
         checkchannel_id()
     askchannel_id()
-    searchurl = f"https://discord.com/api/v9/channels/{channel_id}/messages/search?"
+    searchurl = f"https://discord.com/api/v9/channels/{channel_id}/messages/search?limit=25"
 else:
     channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
-    searchurl = f"https://discord.com/api/v9/guilds/{guild_id}/messages/search?"
+    searchurl = f"https://discord.com/api/v9/guilds/{guild_id}/messages/search?limit=25"
     if channel_id != "":
         searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
@@ -138,7 +138,6 @@ print(mgn + green(f"Started at {now()}"))
 
 total = None
 remaining = None
-index = 0
 
 def search():
     print(mgn + blackbg(text=" Searching on URL: "))
@@ -166,9 +165,11 @@ def search():
     print(mg + blurple("Messages in current page: ") +  greyple(str(len((read)[0]["messages"]))) + "\n")
     if int(remaining) == 0:
         print(mg + yellow(f"Ended because API returned an empty page"))
-    return read    
+    return read
 
+index = 0
 basedelay = 0.55
+success = 0
 
 def deleteseq(read):
     #pgsize = len((read)[0]["messages"])
@@ -177,6 +178,7 @@ def deleteseq(read):
     global remaining
     global basedelay
     global channel_id
+    global success
     for msg in (read)[0]["messages"]:
         timestamp = (msg)[0]["timestamp"]
         index += 1
@@ -191,14 +193,27 @@ def deleteseq(read):
         print(" "*len(num) + "     " + (msg)[0]["author"]["username"] + "#" + (msg)[0]["author"]["discriminator"] + " — " + datetime.fromisoformat(timestamp).strftime("%Y-%m-%d, %H:%M:%S %p"))
         print(" "*len(num) + "     " + "Content: " + greyple((msg)[0]["content"] + "\n"))
         response = requests.delete(f"https://discord.com/api/v9/channels/{chid}/messages/{message_id}", headers = headers)
+        if response.status_code == 204:
+            success += 1
         if response.status_code == 429:
             delay = [response.json()][0]["retry_after"]
             remaining += 1
             index -= 1
-            basedelay += 0.15
+            if delay <= 2:
+                basedelay += delay
+            else:
+                basedelay += (delay / 2)
+            success = 0
             print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
-            print(mg + yellow(f"Adjusted delete delay to {basedelay}ms."))
+            print(mg + yellow(f"Adjusted delete delay to {int(basedelay*1000)}ms."))
             time.sleep(delay)
+        if basedelay >= 1 and success >= 10:
+            success = 0
+            if basedelay >= 4:
+                basedelay = (basedelay // 2)
+            else:
+                basedelay -= 0.45
+            print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
         time.sleep(basedelay)
 
 # TODO: 
@@ -208,13 +223,11 @@ def deleteseq(read):
 #### Message Types: https://discord.com/developers/docs/resources/channel
 #### (Filtering also fixes inconsistencies with total messages and remaining messages)
 # 3. Make a UI Interface for multiple options on "has?"
-# 4. Decrease request delay after some successfull requests
-
-#Deletion Request:
-# 204 = SUCCESS
+# 4. Skip non-deletable message types with "before="
+#### https://discord.com/api/v9/channels/{channel_id}/messages?before={message_id}&limit=25
 
 # Msg types: 
-#  1 - Default
+# 0 - Default
 # 19 - Reply
 # 6 - Pinned
 
