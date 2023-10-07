@@ -1,3 +1,6 @@
+version = "1.9+4"
+release_type = "Beta" # "Beta" or "Release"
+
 from furl import furl
 import requests
 from requests.exceptions import ConnectionError
@@ -63,13 +66,13 @@ else:
 
 blurple = lambda text: colored(r = 88, g=101, b=242, text=text)
 
-blurplebg = lambda text: colored(255,255,255, rb = 88, gb=101, bb=242, text=text)
+blurplebg = lambda text: colored(255,255,255, rb=88, gb=101, bb=242, text=text)
 
 greyple = lambda text: colored(r = 153, g=170, b=181, text=text)
 
-blackbg = lambda text: colored(255,255,255, rb = 35, gb=39, bb=42, text=text)
+blackbg = lambda text: colored(255,255,255, rb=35, gb=39, bb=42, text=text)
 
-greenbg = lambda text: colored(0,0,0, rb = 87, gb=242, bb=135, text=text)
+greenbg = lambda text: colored(0,0,0, rb=87, gb=242, bb=135, text=text)
 
 green = lambda text: colored(87, 242, 135, text=text)
 
@@ -77,23 +80,26 @@ red = lambda text: colored(237, 66, 69, text=text)
 
 yellow = lambda text: colored(254, 231, 92, text=text)
 
+yellowbg = lambda text: colored(0,0,0, rb=254, gb=231, bb=92, text=text)
+
 zerofy = lambda number: 0 if number < 0 else number # Turns all negative tumbers into zero
 
 #print("\n" + blurple(text=f"""{pyfiglet.figlet_format("Undiscord", font="standard")}"""))
 
-print("\n" + blurple(text=""" ██     ██               ██ ██                                      ██"""))
-print(blurple(text="""░██    ░██              ░██░░                                      ░██"""))
-print(blurple(text="""░██    ░██ ███████      ░██ ██  ██████  █████   ██████  ██████     ░██"""))
-print(blurple(text="""░██    ░██░░██░░░██  ██████░██ ██░░░░  ██░░░██ ██░░░░██░░██░░█  ██████"""))
-print(blurple(text="""░██    ░██ ░██  ░██ ██░░░██░██░░█████ ░██  ░░ ░██   ░██ ░██ ░  ██░░░██"""))
-print(blurple(text="""░██    ░██ ░██  ░██░██  ░██░██ ░░░░░██░██   ██░██   ░██ ░██   ░██  ░██"""))
-print(blurple(text="""░░███████  ███  ░██░░██████░██ ██████ ░░█████ ░░██████ ░███   ░░██████"""))
-print(blurple(text=""" ░░░░░░░  ░░░   ░░  ░░░░░░ ░░ ░░░░░░   ░░░░░   ░░░░░░  ░░░     ░░░░░░ """) + yellow(".py") + "\n")
-
 mg= "    " # Just a Margin :P
 mgn = "\n    " # Margin with newline :O
 
-print(mg + blurplebg(text=" ❯ ") + blackbg(text=" Beta 1.9+3 ") + "                        " + blurplebg(text=" Bulk delete messages ") + "\n")
+print("\n\n\n" + mg + blurple(text="""█░█ █▄░█ █▀▄ █ █▀ █▀▀ █▀█ █▀█ █▀▄""") + yellow("""   █▀█ █▄█ ▀█▀ █░█ █▀█ █▄░█"""))
+print(mg + blurple(text="""█▄█ █░▀█ █▄▀ █ ▄█ █▄▄ █▄█ █▀▄ █▄▀""") + yellow("""   █▀▀ ░█░ ░█░ █▀█ █▄█ █░▀█""") + "\n")
+
+version = release_type + " " + version
+if release_type == "Release":
+    vermark = blurplebg(text=" ❯ ")
+elif release_type == "Beta":
+    vermark = yellowbg(text=" ❯ ")
+else:
+    vermark = blackbg(text=" ❯ ")
+print(mg + vermark + blackbg(text=f" {version} ") + "                                 "[:-len(version)] + blurplebg(text=" Bulk delete messages ") + "\n")
 
 clientinfo = '''{
     "os": "Windows",
@@ -252,10 +258,10 @@ def search():
     print(mgn + blackbg(text=" Searching on URL: "))
     print(mg + greyple(text=f"{searchurl} \n"))
     try:
-        response = requests.get(searchurl, headers = headers)
+        response = requests.get(searchurl, headers=headers)
     except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
         internetfail()
-        response = requests.get(searchurl, headers = headers)
+        response = requests.get(searchurl, headers=headers)
     #print(response.json())
     if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
         read = [response.json()]
@@ -265,28 +271,38 @@ def search():
         print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
         time.sleep(delay)
         try:
-            response = requests.get(searchurl, headers = headers)
+            response = requests.get(searchurl, headers=headers)
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
-            response = requests.get(searchurl, headers = headers)
+            response = requests.get(searchurl, headers=headers)
         read = [response.json()]
     elif response.status_code == 429:
         delay = int([response.json()][0]["retry_after"]) + 3
         print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!\n"))
         time.sleep(delay)
         try:
-            response = requests.get(searchurl, headers = headers)
+            response = requests.get(searchurl, headers=headers)
         except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
             internetfail()
-            response = requests.get(searchurl, headers = headers)
+            response = requests.get(searchurl, headers=headers)
         read = [response.json()]
     else:
         try:
             responsejson = response.json()
         except:
             responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
-        print(mgn + num + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
-        print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
+        print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
+        print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
+    if not response.json()["messages"]:
+        delay = 30
+        print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue...\n"))
+        time.sleep(delay)
+        try:
+            response = requests.get(searchurl, headers=headers)
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
+            internetfail()
+            response = requests.get(searchurl, headers=headers)
+        read = [response.json()]
     ping = icmplib.ping("canary.discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
     def deletable(response : str):
@@ -321,7 +337,7 @@ def search():
             print(mg + blurple("Messages in current page: ") +  greyple(str(len((read)[0]["messages"]))) + "\n")
     elif isdeletable == False and remaining != 0:
         allundeletable = True
-        print(mg + red(f"Found only undeletable messages! Skipping to the next page."))
+        print(mg + red(f"Found no deletable messages! Skipping to the next page."))
     else:
         print(mg + blurple("Total messages remaining: ") + greyple(remaining))
         print(mg + blurple("Messages in current page: ") +  greyple(str(len((read)[0]["messages"]))) + "\n")
@@ -441,7 +457,7 @@ def deleteseq(read = None, msglist = None):
                 basedelay -= float((f"0.{int(999 * random())}"))
             print(mg + green(f"Reduced delete delay to {int(basedelay*1000)}ms."))
         time.sleep((basedelay + float((f"0.{int(999 * random())}"))))
-    if read != None:
+    if read != None and "messages" in read[0]:
         for msg in (read)[0]["messages"]:
             message_id = (msg)[0]["id"]
             message_type = (msg)[0]["type"]
@@ -573,5 +589,5 @@ remainingfinalcheck()
 print(mgn + green(f"Ended at {now()}"))
 print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
 
-# UNDISCORD-MOBILE - Bulk delete discord messages on Android or any Python Interpreter.
-# https://github.com/HardcodedCat/undiscord-mobile
+# UNDISCORD-PYTHON - Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.
+# https://github.com/HardcodedCat/undiscord-python
