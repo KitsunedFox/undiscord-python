@@ -31,6 +31,7 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
 4. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
 5. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
 - To stop the script, do KeyboardInterrupt by pressing keys <kbd>CTRL</kbd> + <kbd>C</kbd>
+- Type `@me` on author_id to delete your own messages.
 - For additional help, run `undiscord --help`
 ##### Usage:
 ```

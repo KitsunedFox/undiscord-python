@@ -1,4 +1,4 @@
-version = "1.46" # git rev-list --count --all
+version = "1.47" # git rev-list --count --all
 release_type = "Beta" # "Beta" or "Release"
 
 ########################################
@@ -354,6 +354,7 @@ else:
         searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
 if author_id == "" and skip_configuration != True:
+    print(mgn + blurplebg(text=" TIP ") + blackbg(text=" Type @me to delete your own messages "))
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
 if author_id == "@me" or guild_id == "":
     searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
