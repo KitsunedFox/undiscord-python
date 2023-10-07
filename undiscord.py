@@ -1,10 +1,9 @@
-version = "1.9+4"
+version = "1.9+5"
 release_type = "Beta" # "Beta" or "Release"
 
 from furl import furl
 import requests
-from requests.exceptions import ConnectionError
-from requests.exceptions import RequestException
+from requests.exceptions import ConnectionError, RequestException, Timeout
 from http.client import RemoteDisconnected
 from urllib3.exceptions import ProtocolError
 from datetime import datetime
@@ -14,6 +13,7 @@ from pwinput import pwinput
 import icmplib
 from random import random
 import base64
+from progress.bar import Bar
 
 try:
     import ujson
@@ -47,6 +47,8 @@ content = ""
 include_nsfw = ""
 
 color_support = True
+
+fetch_before = False
 
 if color_support == True:
     def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
@@ -120,30 +122,16 @@ headers = {
     "accept": "*/*",
     "accept-language": "en-US",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
-    } 
+    }
 
-def checklogin():
-    if token == "" and (email == "" or password == ""):
-        print(mgn + red("You must provide a token or login credentials!"))
-        asklogin()
-    else:
-        auth()
-
-def asklogin():
-    global email
-    global password
-    global token
-    token = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: "))).strip()
-    if token == "":
-        email = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Email: ")).strip()
-        password = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Password: "))).strip()
-        checklogin()
-    else:
-        auth()
+requestcli = requests.Session()
+requestcli.headers = headers
 
 def auth():
+    global token
     global headers
     global user_id
+    global authenticated
     if token == "":
         data = {
             "login": email,
@@ -154,55 +142,63 @@ def auth():
         }
         headers["referer"] = "https://discord.com/login"
         headers["x-context-properties"] = "eyJsb2NhdGlvbiI6IkxvZ2luIn0="
-        response = requests.post("https://canary.discord.com/api/v10/auth/login", json=data, headers=headers)
+        response = requestcli.post("https://canary.discord.com/api/v10/auth/login", json=data)
         if response.status_code != 200:
             print(mgn + red(f"Unable to Login! Invalid credentials or requires Captcha."))
-            asklogin()
-        result = jsonlib.loads(response.text)
-        headers["Authorization"] = result["token"]
-        user_id = result["user_id"]
-        headers.pop("referer", None)
-        headers.pop("x-context-properties", None)
+        else:
+            result = jsonlib.loads(response.text)
+            headers["Authorization"] = result["token"]
+            token = result["token"]
+            user_id = result["user_id"]
+            headers.pop("referer", None)
+            headers.pop("x-context-properties", None)
+            authenticated = True
     else:
         headers["Authorization"] = f"{token}"
-        response = requests.get("https://canary.discord.com/api/v10/users/@me", headers=headers)
+        response = requestcli.get("https://canary.discord.com/api/v10/users/@me")
         if response.status_code != 200:
             print(mgn + red(f"Invalid Token! Please try again."))
-            asklogin()
-        result = jsonlib.loads(response.text)
-        user_id = result["id"]
+        else:
+            result = jsonlib.loads(response.text)
+            user_id = result["id"]
+            authenticated = True
 
 if token == "" and (email == "" or password == ""):
-    asklogin()
+    authenticated = False
 else:
     auth()
+
+while authenticated == False:
+    token = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Auth Token: "))).strip()
+    if token == "":
+        email = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Email: ")).strip()
+        password = pwinput(mask = ".", prompt=(mgn + blackbg(text=" ❯ ") + greyple(text=" Password: "))).strip()
+        if email == "" or password == "":
+            print(mgn + red("You must provide a token or login credentials!"))
+        else:
+            auth()
+    else:
+        auth()
 
 if guild_id == "":
     print(mgn + blurplebg(text=" GUILD ") + blackbg(text=" Type GUILD ID ") + "    " + blurplebg(text=" DM ") + blackbg(text=" Skip by pressing Enter "))
     guild_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Guild ID: ")).strip()
 
-if guild_id == "":
-    def checkchannel_id():
-        if channel_id == "":
-            print(mgn + red("You cannot skip this input!"))
-            askchannel_id()
-    def askchannel_id():
-        global channel_id
-        channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
-        checkchannel_id()
-    if channel_id == "":
-        askchannel_id()
-    searchurl = f"https://canary.discord.com/api/v10/channels/{channel_id}/messages/search?limit=25"
-else:
+while channel_id == "":
     channel_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Channel ID: ")).strip()
-    searchurl = f"https://canary.discord.com/api/v10/guilds/{guild_id}/messages/search?limit=25"
-    if channel_id != "":
-        searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
+    if channel_id == "":
+        print(mgn + red("You cannot skip this input!"))
+
+if guild_id == "":
+    searchurl = f"https://canary.discord.com/api/v10/channels/{channel_id}/messages/search?"
+else:
+    fetch_before = False
+    searchurl = f"https://canary.discord.com/api/v10/guilds/{guild_id}/messages/search?"
 
 if author_id == "":
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
 if author_id == "@me":
-    searchurl += f"&author_id={user_id}"
+    searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
 elif author_id != "":
     searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
 
@@ -257,52 +253,35 @@ def search():
     global total
     print(mgn + blackbg(text=" Searching on URL: "))
     print(mg + greyple(text=f"{searchurl} \n"))
-    try:
-        response = requests.get(searchurl, headers=headers)
-    except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-        internetfail()
-        response = requests.get(searchurl, headers=headers)
-    #print(response.json())
-    if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
-        read = [response.json()]
-    elif response.status_code == 202:
-        delay = [response.json()][0]["retry_after"]
-        print(mg + yellow(f"This channel wasn't indexed."))
-        print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
-        time.sleep(delay)
+    read = None
+    while read == None:
         try:
-            response = requests.get(searchurl, headers=headers)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
+            response = requestcli.get(searchurl, timeout=5)
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
             internetfail()
-            response = requests.get(searchurl, headers=headers)
-        read = [response.json()]
-    elif response.status_code == 429:
-        delay = int([response.json()][0]["retry_after"]) + 3
-        print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!\n"))
-        time.sleep(delay)
-        try:
-            response = requests.get(searchurl, headers=headers)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-            internetfail()
-            response = requests.get(searchurl, headers=headers)
-        read = [response.json()]
-    else:
-        try:
-            responsejson = response.json()
-        except:
-            responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
-        print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
-        print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
-    if not response.json()["messages"]:
-        delay = 30
-        print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue...\n"))
-        time.sleep(delay)
-        try:
-            response = requests.get(searchurl, headers=headers)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-            internetfail()
-            response = requests.get(searchurl, headers=headers)
-        read = [response.json()]
+        if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
+            read = [response.json()]
+        elif response.status_code == 202:
+            delay = [response.json()][0]["retry_after"]
+            print(mg + yellow(f"This channel wasn't indexed."))
+            print(mg + yellow(f"Waiting {int(delay*1000)}ms for discord to index it...\n"))
+            time.sleep(delay)
+        elif response.status_code == 429:
+            delay = int([response.json()][0]["retry_after"]) + 3
+            print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!\n"))
+            time.sleep(delay)
+        else:
+            try:
+                responsejson = response.json()
+            except:
+                responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
+            print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
+            print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
+        if not response.json()["messages"]:
+            delay = 30
+            print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue.\n"))
+            time.sleep(delay)
+            read = None
     ping = icmplib.ping("canary.discord.com", count=1, privileged=False)
     print(mg + blackbg(text=" Ping: ") + greyple(text=f" {str(ping.avg_rtt)}ms \n"))
     def deletable(response : str):
@@ -409,11 +388,13 @@ def deleteseq(read = None, msglist = None):
             print(" "*len(num) + "     " + "Content: " + greyple(message_content + "\n"))
         if str(f"{message_id}") in pending.keys():
             del pending[f"{message_id}"]
-        try: 
-            response = requests.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", headers = headers)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-            internetfail()
-            response = requests.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", headers = headers)
+        response = None
+        while response == None:
+            try: 
+                response = requestcli.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", timeout=5)
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
+                internetfail()
+                response = None
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             printmsg()
             reqsuccess += 1
@@ -421,7 +402,7 @@ def deleteseq(read = None, msglist = None):
         else:
             if response.status_code == 429:
                 responsejson = response.json()
-            # [response.json()][0]["code"] == 20028
+                # [response.json()][0]["code"] == 20028
                 delay = [response.json()][0]["retry_after"]
                 pending[f"{message_id}"] = []
                 pending[f"{message_id}"].append({"author":f"{message_author}", "content":f"{message_content}", "date":f"{message_date}", "type":f"{message_type}", "channel":f"{message_channel}"})
@@ -435,15 +416,15 @@ def deleteseq(read = None, msglist = None):
                 print(mg + yellow(f"Being rate limited by the API for {int(delay*1000)}ms!"))
                 print(mg + yellow(f"Adjusted delete delay to ≈{int(basedelay*1000)}ms."))
                 time.sleep(delay)
-            #print(response.text + " STATUS " + str(response.status_code))
+                #print(response.text + " STATUS " + str(response.status_code))
             else:
                 try:
                     responsejson = response.json()
                 except:
                     responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
-            # [responsejson][0]["code"] == 50083 / statuscode 400
+                # [responsejson][0]["code"] == 50083 / statuscode 400
                 print(mgn + num + red(f" Couldn't delete this message. Status code: " + str(response.status_code)))
-                print(mgn + num + red(f' {[responsejson][0]["message"]}') + "\n")
+                print(" "*len(num) + "     " + red(f'{[responsejson][0]["message"]}') + "\n")
                 reqsuccess += 1
                 failed += 1
                 if str(f"{message_id}") not in pending.keys():
@@ -483,7 +464,8 @@ def deleteseq(read = None, msglist = None):
                 searchurl = furl(origsearchurl).remove(['max_id']).url
                 searchurl = furl(searchurl).add({"max_id":f"{message_id}"}).url
     if msglist != None:
-        for message_id in msglist:
+        msglist_copy = msglist.copy()
+        for message_id in msglist_copy:
             message_type = str(msglist[f"{message_id}"][0]["type"])
             typestr = typelist(message_type)
             index += 1
@@ -503,25 +485,58 @@ def deleteseq(read = None, msglist = None):
                 print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
                 print(" "*len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
                 del pending[f"{message_id}"]
-
-cattempt = 1
+                
 
 def internetfail():
-    global cattempt
-    num = f"({str(cattempt)})"
-    print(mg + num + red(f" Connection Failure!"))
-    print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
-    print(mg)
-    time.sleep(30)
-    try:
-        requests.get("https://canary.discord.com/api/v10/")
-        cattempt = 1
-        print(mg + green(f"Connection successfully established!"))
+    cattempt = 1
+    connected = False
+    while connected == False:
+        num = f"({str(cattempt)})"
+        print(mg + num + red(f" Connection Failure!"))
+        print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
         print(mg)
-        return
-    except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-        cattempt += 1
-        internetfail()
+        time.sleep(30)
+        try:
+            requests.head("https://canary.discord.com/api/v10/")
+            print(mg + green(f"Connection successfully established!"))
+            print(mg)
+            connected = True
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
+            cattempt += 1
+    return
+
+def fetch():
+    global searchurl
+    def fetchpage():
+        response = None
+        while response == None:
+            try: 
+                response = requestcli.get(f"{searchurl}")
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
+                internetfail()
+                response = None
+        data = response.json()
+        return data
+    read = []
+    searchurl = searchurl.replace("/messages/search?", "/messages?")
+    data = fetchpage()
+    bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
+    while True:
+        read.append(data)
+        if len(data) < 50:
+            break
+        else:
+            last = data[49]['id']
+        searchurl = furl(searchurl).remove(['max_id']).remove(['before']).url
+        searchurl = furl(searchurl).add({"before":f"{last}"}).url
+        data = fetchpage()
+        bar.next()
+    bar.next()
+    bar.finish()
+    msgs = [[x] for y in read for x in y]
+    msglist = [{'messages': msgs}]
+    return msglist
+    
 
 # -------- Development stuff (Ignore this) ----------
 
@@ -537,54 +552,54 @@ def internetfail():
 
 # TODO: UI Update (ver 2.0.0)
 # TODO2: Enhance message search exceptions
-# RecursionError
 # TODO3: Jupyter Notebook
+
+# Add message amount option
+# Add environment variables
+# Add command line cli
+# Add help command
+# Publish on Pypi
+# Replace with after for fetch_before
+# Disable stuff in fetch before (enforce using manual parsing instead of relying on weird discord api)
 
 # --------------------------------------------------
 
-read = search()
-
-divided = ceil(int(total) / 25)
-
-for _ in range(divided):
+if fetch_before == True:
+    search()
+    searchurl = furl(searchurl).add({"limit":"50"}).url
+    divided = ceil((total) / 50)
+    read = fetch()
     deleteseq(read)
-    allundeletable = False
-    remaining = zerofy(remaining)
+    while len(pending) != 0:
+        deleteseq(msglist = pending)
+else:
+    searchurl = furl(searchurl).add({"limit":"25"}).url
+
     read = search()
 
-def listfinalcheck():
-    if len(pending) != 0:
-        final()
+    divided = ceil(int(total) / 25)
 
-def listfinal():
-    deleteseq(msglist = pending)
-    finalcheck()
-
-def finalcheck():
-    if remaining != 0:
-        final()
-
-def final():
-    global read
-    global remaining
-    divided = ceil(remaining / 25)
     for _ in range(divided):
         deleteseq(read)
         allundeletable = False
         remaining = zerofy(remaining)
         read = search()
-    finalcheck()
 
-def remainingfinalcheck():
-    if remaining != 0:
-        remainingfinal()
+    def final():
+        global read
+        global remaining
+        divided = ceil(remaining / 25)
+        for _ in range(divided):
+            deleteseq(read)
+            allundeletable = False
+            remaining = zerofy(remaining)
+            read = search()
 
-def remainingfinal():
-    listfinalcheck()
-    finalcheck()
-    remainingfinalcheck()
-
-remainingfinalcheck()
+    while remaining != 0:
+        if len(pending) != 0:
+            final()
+        if remaining != 0:
+            final()
 
 print(mgn + green(f"Ended at {now()}"))
 print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
