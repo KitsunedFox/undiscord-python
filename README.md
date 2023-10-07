@@ -16,6 +16,9 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [Pwinput - A cross-platform Python module that displays **** for password input.](https://pypi.org/project/pwinput/)
    > > `pip install pwinput`
 
+   > [icmplib - The power to forge ICMP packets and do ping and traceroute.](https://pypi.org/project/icmplib/)
+   > > `pip install icmplib`
+
 2. Execute the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
 4. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
