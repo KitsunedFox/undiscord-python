@@ -1,6 +1,12 @@
 from furl import furl
-import requests
-import json
+try:
+    import httpx as requests
+except ImportError:
+    import requests
+try:
+    import ujson as json
+except ImportError:
+    import json
 from datetime import datetime
 import time
 from math import ceil
