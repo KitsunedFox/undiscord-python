@@ -629,12 +629,13 @@ def fetch():
 
 if fetch_before == True:
     search()
-    searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
-    divided = ceil((total) / 50)
-    read = fetch()
-    deleteseq(read)
-    while len(pending) != 0:
-        deleteseq(msglist = pending)
+    if total != 0:
+        searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
+        divided = ceil((total) / 50)
+        read = fetch()
+        deleteseq(read)
+        while len(pending) != 0:
+            deleteseq(msglist = pending)
 else:
     searchurl = furl(searchurl).add({"limit":"25"}).url
 
