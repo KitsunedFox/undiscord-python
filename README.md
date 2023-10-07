@@ -20,8 +20,9 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
 
-If you have need additional help [open a discussion here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/discussions)
-If you found any bugs or just wanna request a new feature [open a issue here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/issues/new/choose)
+> ℹ️ If you have need additional help [open a discussion here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/discussions)
+
+> ℹ️ If you found any bugs or just wanna request a new feature [open a issue here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/issues/new/choose)
 
 # DO NOT SHARE YOUR `authToken`!
 
