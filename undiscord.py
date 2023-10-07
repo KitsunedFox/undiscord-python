@@ -1,11 +1,11 @@
-version = "1.9+5"
+version = "1.9+6"
 release_type = "Beta" # "Beta" or "Release"
 
 from furl import furl
 import requests
-from requests.exceptions import ConnectionError, RequestException, Timeout
+from requests.exceptions import ConnectionError, RequestException, Timeout, ReadTimeout
 from http.client import RemoteDisconnected
-from urllib3.exceptions import ProtocolError
+from urllib3.exceptions import ProtocolError, ReadTimeoutError
 from datetime import datetime
 import time
 from math import ceil
@@ -14,7 +14,8 @@ import icmplib
 from random import random
 import base64
 from progress.bar import Bar
-
+from progress.spinner import PixelSpinner
+import re
 try:
     import ujson
     jsonlib = ujson
@@ -34,6 +35,8 @@ guild_id = ""
 
 min_id = ""
 
+max_id = ""
+
 channel_id = ""
 
 author_id = ""
@@ -48,7 +51,9 @@ include_nsfw = ""
 
 color_support = True
 
-fetch_before = False
+fetch_before = True
+
+api = "https://canary.discord.com/api/v10"
 
 if color_support == True:
     def colored(r : int = None, g : int = None, b : int = None, rb : int = None, gb : int = None, bb : int = None, text = None):
@@ -65,7 +70,7 @@ else:
             return str(text)
         else:
             return "[{}]".format(text)
-
+            
 blurple = lambda text: colored(r = 88, g=101, b=242, text=text)
 
 blurplebg = lambda text: colored(255,255,255, rb=88, gb=101, bb=242, text=text)
@@ -86,6 +91,25 @@ yellowbg = lambda text: colored(0,0,0, rb=254, gb=231, bb=92, text=text)
 
 zerofy = lambda number: 0 if number < 0 else number # Turns all negative tumbers into zero
 
+urlregex = r'('
+# Scheme (HTTP, HTTPS, FTP and SFTP):
+urlregex += r'(?:(https?|s?ftp):\/\/)?'
+# www:
+urlregex += r'(?:www\.)?'
+urlregex += r'('
+# Host and domain (including ccSLD):
+urlregex += r'(?:(?:[A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9]\.)+)'
+# TLD:
+urlregex += r'([A-Z]{2,6})'
+# IP Address:
+urlregex += r'|(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+urlregex += r')'
+# Port:
+urlregex += r'(?::(\d{1,5}))?'
+# Query path:
+urlregex += r'(?:(\/\S+)*)'
+urlregex += r')'
+
 #print("\n" + blurple(text=f"""{pyfiglet.figlet_format("Undiscord", font="standard")}"""))
 
 mg= "    " # Just a Margin :P
@@ -102,6 +126,24 @@ elif release_type == "Beta":
 else:
     vermark = blackbg(text=" ❯ ")
 print(mg + vermark + blackbg(text=f" {version} ") + "                                 "[:-len(version)] + blurplebg(text=" Bulk delete messages ") + "\n")
+
+def internetfail():
+    cattempt = 1
+    connected = False
+    while connected == False:
+        num = f"({str(cattempt)})"
+        print(mg + num + red(f" Connection Failure!"))
+        print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
+        print(mg)
+        time.sleep(30)
+        try:
+            requests.head(api)
+            print(mg + green(f"Connection successfully established!"))
+            print(mg)
+            connected = True
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
+            cattempt += 1
+    return
 
 clientinfo = '''{
     "os": "Windows",
@@ -142,7 +184,13 @@ def auth():
         }
         headers["referer"] = "https://discord.com/login"
         headers["x-context-properties"] = "eyJsb2NhdGlvbiI6IkxvZ2luIn0="
-        response = requestcli.post("https://canary.discord.com/api/v10/auth/login", json=data)
+        response = None
+        while response == None:
+            try: 
+                response = requestcli.post(f"{api}/auth/login", json=data)
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
+                internetfail()
+                response = None
         if response.status_code != 200:
             print(mgn + red(f"Unable to Login! Invalid credentials or requires Captcha."))
         else:
@@ -155,7 +203,13 @@ def auth():
             authenticated = True
     else:
         headers["Authorization"] = f"{token}"
-        response = requestcli.get("https://canary.discord.com/api/v10/users/@me")
+        response = None
+        while response == None:
+            try: 
+                response = requestcli.get(f"{api}/users/@me")
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
+                internetfail()
+                response = None
         if response.status_code != 200:
             print(mgn + red(f"Invalid Token! Please try again."))
         else:
@@ -190,15 +244,18 @@ while channel_id == "":
         print(mgn + red("You cannot skip this input!"))
 
 if guild_id == "":
-    searchurl = f"https://canary.discord.com/api/v10/channels/{channel_id}/messages/search?"
+    searchurl = f"{api}/channels/{channel_id}/messages/search?"
 else:
     fetch_before = False
-    searchurl = f"https://canary.discord.com/api/v10/guilds/{guild_id}/messages/search?"
+    searchurl = f"{api}/guilds/{guild_id}/messages/search?"
+    if channel_id != "":
+        searchurl = furl(searchurl).add({"channel_id":f"{channel_id}"}).url
 
 if author_id == "":
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
 if author_id == "@me":
     searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
+    author_id = user_id
 elif author_id != "":
     searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
 
@@ -257,7 +314,7 @@ def search():
     while read == None:
         try:
             response = requestcli.get(searchurl, timeout=5)
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
+        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
             internetfail()
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
             read = [response.json()]
@@ -277,7 +334,8 @@ def search():
                 responsejson = jsonlib.loads(jsonlib.dumps({'message': 'The api returned no error message.'}))
             print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
             print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
-        if not response.json()["messages"]:
+        if not response.json()["messages"] and response.json()["total_results"] != 0:
+            print(response.json())
             delay = 30
             print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue.\n"))
             time.sleep(delay)
@@ -391,8 +449,8 @@ def deleteseq(read = None, msglist = None):
         response = None
         while response == None:
             try: 
-                response = requestcli.delete(f"https://canary.discord.com/api/v10/channels/{message_channel}/messages/{message_id}", timeout=5)
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
+                response = requestcli.delete(f"{api}/channels/{message_channel}/messages/{message_id}", timeout=5)
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
                 internetfail()
                 response = None
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 204:
@@ -485,25 +543,7 @@ def deleteseq(read = None, msglist = None):
                 print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
                 print(" "*len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
                 del pending[f"{message_id}"]
-                
 
-def internetfail():
-    cattempt = 1
-    connected = False
-    while connected == False:
-        num = f"({str(cattempt)})"
-        print(mg + num + red(f" Connection Failure!"))
-        print(" "*len(num) + "    " + red(f" Attempting to reconnect to Discord servers in 30 seconds..."))
-        print(mg)
-        time.sleep(30)
-        try:
-            requests.head("https://canary.discord.com/api/v10/")
-            print(mg + green(f"Connection successfully established!"))
-            print(mg)
-            connected = True
-        except ConnectionError or RequestException or RemoteDisconnected or ProtocolError:
-            cattempt += 1
-    return
 
 def fetch():
     global searchurl
@@ -512,13 +552,12 @@ def fetch():
         while response == None:
             try: 
                 response = requestcli.get(f"{searchurl}")
-            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout:
+            except ConnectionError or RequestException or RemoteDisconnected or ProtocolError or Timeout or ReadTimeout or ReadTimeoutError or TimeoutError:
                 internetfail()
                 response = None
         data = response.json()
         return data
     read = []
-    searchurl = searchurl.replace("/messages/search?", "/messages?")
     data = fetchpage()
     bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
     while True:
@@ -527,13 +566,39 @@ def fetch():
             break
         else:
             last = data[49]['id']
-        searchurl = furl(searchurl).remove(['max_id']).remove(['before']).url
+        searchurl = furl(searchurl).remove(['before']).url
         searchurl = furl(searchurl).add({"before":f"{last}"}).url
         data = fetchpage()
         bar.next()
     bar.next()
     bar.finish()
     msgs = [[x] for y in read for x in y]
+    spinner = PixelSpinner(f"{mgn}Filtering ")
+    if min_id != "":
+        for index, msg in enumerate(msgs):
+            spinner.next()
+            if msg[0]["id"] == min_id:
+                msgs = msgs[:index]
+                break
+    if max_id != "":
+        for index, msg in enumerate(msgs):
+            spinner.next()
+            if msg[0]["id"] == max_id:
+                msgs = msgs[index + 1:]
+                break
+    if content != "":
+        msgs = [msg for msg in msgs if content in msg[0]["content"]]
+        spinner.next()
+    if author_id != "":
+        msgs = [msg for msg in msgs if msg[0]["author"]["id"] == author_id]
+        spinner.next()
+    if has_file != "":
+        msgs = [msg for msg in msgs if msg[0]["attachments"] != []]
+        spinner.next()
+    if has_link != "":
+        msgs = [msg for msg in msgs if re.compile(urlregex, re.IGNORECASE).search(msg[0]["content"]) != None]
+        spinner.next()
+    print("")
     msglist = [{'messages': msgs}]
     return msglist
     
@@ -559,14 +624,12 @@ def fetch():
 # Add command line cli
 # Add help command
 # Publish on Pypi
-# Replace with after for fetch_before
-# Disable stuff in fetch before (enforce using manual parsing instead of relying on weird discord api)
 
 # --------------------------------------------------
 
 if fetch_before == True:
     search()
-    searchurl = furl(searchurl).add({"limit":"50"}).url
+    searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
     divided = ceil((total) / 50)
     read = fetch()
     deleteseq(read)
