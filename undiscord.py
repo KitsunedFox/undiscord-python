@@ -1,4 +1,4 @@
-version = "1.9.8"
+version = "1.9.9"
 release_type = "Beta" # "Beta" or "Release"
 
 ########################################
@@ -174,7 +174,7 @@ mgn = "\n    " # Margin with newline :O
 
 version = release_type + " " + version
 
-print("\n\n\n" + mg + blurple(text="""█░█ █▄░█ █▀▄ █ █▀ █▀▀ █▀█ █▀█ █▀▄""") + yellow("""   █▀█ █▄█ ▀█▀ █░█ █▀█ █▄░█"""))
+print("\n\n" + mg + blurple(text="""█░█ █▄░█ █▀▄ █ █▀ █▀▀ █▀█ █▀█ █▀▄""") + yellow("""   █▀█ █▄█ ▀█▀ █░█ █▀█ █▄░█"""))
 print(mg + blurple(text="""█▄█ █░▀█ █▄▀ █ ▄█ █▄▄ █▄█ █▀▄ █▄▀""") + yellow("""   █▀▀ ░█░ ░█░ █▀█ █▄█ █░▀█""") + "\n")
 
 if release_type == "Release":
@@ -228,6 +228,8 @@ requestcli = requests.Session()
 requestcli.headers = headers
 
 user_id = ""
+
+authenticated = None
 
 def auth():
     global token
@@ -400,7 +402,6 @@ def search():
             print(mgn + red(f" Couldn't fetch message pages. Status code: " + str(response.status_code)))
             print(mgn + red(f' {[responsejson][0]["message"]}') + "\n")
         if "messages" in response.json() and not response.json()["messages"] and response.json()["total_results"] != 0:
-            print(response.text)
             delay = 30
             print(mg + yellow(f"Received an empty messages container! Waiting {delay} seconds to continue.\n"))
             time.sleep(delay)
@@ -639,7 +640,8 @@ def fetch():
     bar.next()
     bar.finish()
     msgs = [[x] for y in read for x in y]
-    spinner = PixelSpinner(f"{mgn}Filtering ")
+    print("")
+    spinner = PixelSpinner(f"    Filtering ")
     if min_id != "":
         for index, msg in enumerate(msgs):
             spinner.next()
@@ -658,10 +660,10 @@ def fetch():
     if author_id != "":
         msgs = [msg for msg in msgs if msg[0]["author"]["id"] == author_id]
         spinner.next()
-    if has_file != "":
+    if has_file != False:
         msgs = [msg for msg in msgs if msg[0]["attachments"] != []]
         spinner.next()
-    if has_link != "":
+    if has_link != False:
         msgs = [msg for msg in msgs if re.compile(urlregex, re.IGNORECASE).search(msg[0]["content"]) != None]
         spinner.next()
     print("")
