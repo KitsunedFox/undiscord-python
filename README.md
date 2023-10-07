@@ -13,6 +13,9 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [Furl - URL manipulation made simple.](https://pypi.org/project/furl/)
    > > `pip install furl`
 
+   > [Pwinput - A cross-platform Python module that displays **** for password input.](https://pypi.org/project/pwinput/)
+   > > `pip install pwinput`
+
 2. Execute the script from [Releases](https://github.com/HelpyFazbear/deleteDiscordMessages.py/releases/tag/Latest)
 3. Fill "Auth Token", "Guild ID" and "Channel ID" Fields.
 4. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
