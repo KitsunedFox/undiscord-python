@@ -10,7 +10,7 @@
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
 
-If you have issues or just need help [open a discussion here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/issues)
+If you have issues or just need help [open a issue here](https://github.com/HelpyFazbear/deleteDiscordMessages.py/issues)
 
 # DO NOT SHARE YOUR `authToken`!
 
