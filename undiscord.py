@@ -1,4 +1,4 @@
-version = "1.47" # git rev-list --count --all
+version = "1.47" # git rev-list --count --HEAD
 release_type = "Beta" # "Beta" or "Release"
 
 ########################################
@@ -657,6 +657,7 @@ def fetch():
             try: 
                 response = requestcli.get(f"{searchurl}")
             except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                print("\n")
                 internetfail(str(type(e).__name__))
                 response = None
         data = response.json()
