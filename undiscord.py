@@ -358,43 +358,44 @@ if author_id == "" and skip_configuration != True:
     print(mgn + blurplebg(text=" TIP ") + blackbg(text=" Type @me to delete your own messages "))
     author_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Author ID: ")).strip()
 if author_id == "@me" or guild_id == "":
-    searchurl = furl(searchurl).add({"author_id":f"{user_id}"}).url
     author_id = user_id
-elif author_id != "":
-    searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
 
 if min_id == "" and skip_configuration != True:
     min_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" After message with ID: ")).strip()
-if min_id != "":
-    searchurl = furl(searchurl).add({"min_id":f"{min_id}"}).url
 
 if max_id == "" and skip_configuration != True:
     max_id = input(mgn + blackbg(text=" ❯ ") + greyple(text=" Before message with ID: ")).strip()
-if max_id != "":
-    searchurl = furl(searchurl).add({"max_id":f"{max_id}"}).url
 
 if has_link == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
     has_link = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain links? ")).lower().strip() == 'y' else False
-if has_link == True:
-    searchurl = furl(searchurl).add({"has":"link"}).url
 
 if has_file == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
     has_file = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Must contain files? ")).lower().strip() == 'y' else False
-if has_file == True:
-    searchurl = furl(searchurl).add({"has":"file"}).url
 
 if content == "" and skip_configuration != True:
     content = input(mgn+ blackbg(text=" ❯ ") + greyple(text=" Containing text: ")).strip()
-if content != "":
-    searchurl = furl(searchurl).add({"content":f"{content}"}).url
 
 if is_nsfw == False and skip_configuration != True:
     print(mgn + blurplebg(text=" TRUE ") + blackbg(text=" Type 'Y' ") + "     " + blurplebg(text=" FALSE ") + blackbg(text=" Type 'N' "))
     is_nsfw = True if input(mgn + blackbg(text=" ❯ ") + greyple(text=" Is NSFW Channel? ")).lower().strip() == 'y' else False
-if is_nsfw == True:
-    searchurl = furl(searchurl).add({"include_nsfw":"true"}).url
+
+if fetch_before != True:
+    if author_id != "":
+        searchurl = furl(searchurl).add({"author_id":f"{author_id}"}).url
+    if min_id != "":
+        searchurl = furl(searchurl).add({"min_id":f"{min_id}"}).url
+    if max_id != "":
+        searchurl = furl(searchurl).add({"max_id":f"{max_id}"}).url
+    if has_link == True:
+        searchurl = furl(searchurl).add({"has":"link"}).url
+    if has_file == True:
+        searchurl = furl(searchurl).add({"has":"file"}).url
+    if content != "":
+        searchurl = furl(searchurl).add({"content":f"{content}"}).url
+    if is_nsfw == True:
+        searchurl = furl(searchurl).add({"include_nsfw":"true"}).url
 
 now = lambda: datetime.now().strftime("%Y-%m-%d, %H:%M:%S %p")
 
@@ -651,22 +652,23 @@ def deleteseq(read = None, msglist = None):
 
 def fetch():
     global searchurl
+    global total
     def fetchpage():
-        response = None
-        while response == None:
+        data = None
+        while data == None:
             try: 
                 response = requestcli.get(f"{searchurl}")
-            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError) as e:
+                data = response.json()
+            except (ConnectionError, RequestException, RemoteDisconnected, ProtocolError, Timeout, ReadTimeout, ReadTimeoutError, TimeoutError, JSONDecodeError, ValueError) as e:
                 print("\n")
                 internetfail(str(type(e).__name__))
-                response = None
-        data = response.json()
+                data = None
         return data
     read = []
     print("")
     a = 0
     bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
-    while a < total:
+    while a < total: # Fetch all unfiltered messages from DM, both authors
         data = fetchpage()
         read.append(data)
         searchurl = furl(searchurl).remove(['before']).url
@@ -707,6 +709,7 @@ def fetch():
         msgs = [msg for msg in msgs if re.compile(urlregex, re.IGNORECASE).search(msg[0]["content"]) != None]
         spinner.next()
     print("")
+    total = len(msgs) # Changea total value to the amount of filtered messages
     msglist = [{'messages': msgs}]
     return msglist
     
@@ -729,7 +732,6 @@ def fetch():
 # Add message amount option
 # Add environment variables
 # Detect indexing state on fetch-before
-# Detect internet failures on fetch
 
 # --------------------------------------------------
 
