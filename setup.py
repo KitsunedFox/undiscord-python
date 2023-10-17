@@ -6,7 +6,7 @@ from setuptools import setup
 def main():
     setup(
         name='undiscord',
-        version='1.47',
+        version='1.50',
         author="HardcodedCat",
         scripts=['undiscord'],
         py_modules=['undiscord'],
