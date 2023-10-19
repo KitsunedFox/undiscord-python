@@ -26,7 +26,7 @@ except ImportError:
 #           U N D I S C O R D          #
 ########################################
 
-version = "1.51"  # git rev-list --count --HEAD
+version = "1.52"  # git rev-list --count --HEAD
 release_type = "Beta"  # "Beta" or "Release"
 
 ########################################

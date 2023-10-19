@@ -6,12 +6,12 @@ from setuptools import setup
 def main():
     setup(
         name='undiscord',
-        version='1.51',
+        version='1.52',
         author="HardcodedCat",
         scripts=['undiscord'],
         py_modules=['undiscord'],
         description='Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.',
-        install_requires=['furl', 'pwinput', 'icmplib', 'progress'],
+        install_requires=['furl', 'pwinput', 'icmplib', 'alive-progress'],
         keywords=['setuptools', 'undiscord', 'discord', 'wipe', 'delete', 'erase', 'messages', 'selfbot', 'userscript'],
         classifiers=[
             "Development Status :: 4 - Beta",
