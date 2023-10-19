@@ -10,8 +10,7 @@ from pwinput import pwinput
 import icmplib
 from random import random, choice
 import base64
-from progress.bar import Bar
-from progress.spinner import PixelSpinner
+from alive_progress import alive_bar
 import re
 from json import JSONDecodeError
 import argparse
@@ -27,7 +26,7 @@ except ImportError:
 #           U N D I S C O R D          #
 ########################################
 
-version = "1.50"  # git rev-list --count --HEAD
+version = "1.51"  # git rev-list --count --HEAD
 release_type = "Beta"  # "Beta" or "Release"
 
 ########################################
@@ -338,9 +337,9 @@ def auth():
             user_id = result["id"]
             authenticated = True
 
-
 if token == "" and (email == "" or password == ""):
     authenticated = False
+    print(mgn + blurplebg(text=" TIP ") + blackbg(text=" Leave token blank to login using Email + Password "))
 else:
     auth()
 
@@ -526,7 +525,7 @@ failed = 0
 pending = {}
 
 
-def deleteseq(read=None, msglist=None):
+def deleteseq(read=None, msglist=None, bar=None):
     # pgsize = len((read)[0]["messages"])
     global index
     global total
@@ -606,6 +605,7 @@ def deleteseq(read=None, msglist=None):
             printmsg()
             reqsuccess += 1
             deleted += 1
+            bar()
         else:
             if response.status_code == 429:
                 # responsejson = response.json()
@@ -636,6 +636,7 @@ def deleteseq(read=None, msglist=None):
                 print(" " * len(num) + "     " + red(f'{[responsejson][0]["message"]}') + "\n")
                 reqsuccess += 1
                 failed += 1
+                bar(skipped=True)
                 if str(f"{message_id}") not in pending.keys():
                     searchurl = furl(origsearchurl).remove(['max_id']).url
                     searchurl = furl(searchurl).add({"max_id": f"{message_id}"}).url
@@ -669,6 +670,7 @@ def deleteseq(read=None, msglist=None):
                           typestr)
             else:
                 failed += 1
+                bar(skipped=True)
                 if not allundeletable:
                     print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
                     print(" " * len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
@@ -694,6 +696,7 @@ def deleteseq(read=None, msglist=None):
                           typestr)
             else:
                 failed += 1
+                bar(skipped=True)
                 print(mgn + num + red(f" Couldn't delete this message. Type is non-deletable."))
                 print(" " * len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
                 del pending[f"{message_id}"]
@@ -719,48 +722,41 @@ def fetch():
     readed = []
     print("")
     a = 0
-    bar = Bar(f'{mg}Fetching', max=divided, fill=blurple("█"), suffix='%(percent)d%%')
-    while a < total:  # Fetch all unfiltered messages from DM, both authors
-        data = fetchpage()
-        readed.append(data)
-        searchurl = furl(searchurl).remove(['before']).url
-        if len(data) < 50:
-            pass
-        else:
-            last = data[49]['id']
-            searchurl = furl(searchurl).add({"before": f"{last}"}).url
-        a += len(data)
-        bar.next()
-    bar.next()
-    bar.finish()
+    with alive_bar(divided, title=f'{mg}Fetching', bar="smooth", length=32, elapsed=False, enrich_print=False, monitor='{percent:.0%}', ctrl_c=False, spinner=None) as bar:
+        while a < total:  # Fetch all unfiltered messages from DM, both authors
+            data = fetchpage()
+            readed.append(data)
+            searchurl = furl(searchurl).remove(['before']).url
+            if len(data) < 50:
+                pass
+            else:
+                last = data[49]['id']
+                searchurl = furl(searchurl).add({"before": f"{last}"}).url
+            a += len(data)
+            bar()
     print("")
-    msgs = [[x] for y in readed for x in y]
-    spinner = PixelSpinner(f"    Filtering ")
-    if min_id != "":
-        for currindex, msg in enumerate(msgs):
-            spinner.next()
-            if msg[0]["id"] == min_id:
-                msgs = msgs[:currindex]
-                break
-    if max_id != "":
-        for currindex, msg in enumerate(msgs):
-            spinner.next()
-            if msg[0]["id"] == max_id:
-                msgs = msgs[currindex + 1:]
-                break
+    with alive_bar(title=f'{mg}Filtering', bar=None, ctrl_c=False, monitor_end=False, enrich_print=False, elapsed="({elapsed})", stats=False, elapsed_end="in {elapsed}", monitor=False, spinner="waves2") as spinner:
+        msgs = [[x] for y in readed for x in y]
+        if min_id != "":
+            for currindex, msg in enumerate(msgs):
+                if msg[0]["id"] == min_id:
+                    msgs = msgs[:currindex]
+                    break
+        if max_id != "":
+            for currindex, msg in enumerate(msgs):
+                if msg[0]["id"] == max_id:
+                    msgs = msgs[currindex + 1:]
+                    break
 
-    if author_id != "":
-        msgs = [msg for msg in msgs if msg[0]["author"]["id"] == author_id]
-        spinner.next()
-    if has_file:
-        msgs = [msg for msg in msgs if msg[0]["attachments"] != []]
-        spinner.next()
-    if has_link:
-        msgs = [msg for msg in msgs if re.compile(urlregex, re.IGNORECASE).search(msg[0]["content"]) is not None]
-        spinner.next()
-    if content != "":
-        msgs = [msg for msg in msgs if content in msg[0]["content"]]
-        spinner.next()
+        if author_id != "":
+            msgs = [msg for msg in msgs if msg[0]["author"]["id"] == author_id]
+        if has_file:
+            msgs = [msg for msg in msgs if msg[0]["attachments"] != []]
+        if has_link:
+            msgs = [msg for msg in msgs if re.compile(urlregex, re.IGNORECASE).search(msg[0]["content"]) is not None]
+        if content != "":
+            msgs = [msg for msg in msgs if content in msg[0]["content"]]
+        spinner.title=f"{mg}Filtered"
     print("")
     total = len(msgs)  # Changea total value to the amount of filtered messages
     msglist = [{'messages': msgs}]
@@ -795,40 +791,43 @@ if fetch_before is True:
         searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
         divided = ceil(total / 50)
         read = fetch()
-        deleteseq(read)
-        while len(pending) != 0:
-            deleteseq(msglist=pending)
+        with alive_bar(total, title=f'{mg}Deleting', bar="smooth", length=32, elapsed=False, monitor='{percent:.0%}', enrich_print=False, ctrl_c=False, spinner=None) as bar:
+            deleteseq(read, bar=bar)
+            while len(pending) != 0:
+                deleteseq(msglist=pending, bar=bar)
 else:
     searchurl = furl(searchurl).add({"limit": "25"}).url
 
     read = search()
 
     divided = ceil(int(total) / 25)
+    
+    with alive_bar(total, title=f'{mg}Deleting', bar="smooth", length=32, elapsed=False, monitor='{percent:.0%}', enrich_print=False, ctrl_c=False, spinner=None) as bar:
 
-    for _ in range(divided):
-        deleteseq(read)
-        allundeletable = False
-        remaining = zerofy(remaining)
-        read = search()
-
-
-    def final():
-        global read
-        global remaining
-        global allundeletable
-        dividedam = ceil(remaining / 25)
-        for _ in range(dividedam):
-            deleteseq(read)
+        for _ in range(divided):
+            deleteseq(read, bar=bar)
             allundeletable = False
             remaining = zerofy(remaining)
             read = search()
 
 
-    while remaining != 0:
-        if len(pending) != 0:
-            final()
-        if remaining != 0:
-            final()
+        def final():
+            global read
+            global remaining
+            global allundeletable
+            dividedam = ceil(remaining / 25)
+            for _ in range(dividedam):
+                deleteseq(read, bar=bar)
+                allundeletable = False
+                remaining = zerofy(remaining)
+                read = search()
+
+
+        while remaining != 0:
+            if len(pending) != 0:
+                final()
+            if remaining != 0:
+                final()
 
 print(mgn + green(f"Ended at {now()}"))
 print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))

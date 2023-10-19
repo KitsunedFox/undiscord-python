@@ -45,8 +45,8 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [icmplib - The power to forge ICMP packets and do ping and traceroute.](https://pypi.org/project/icmplib/)
    > - `pip install icmplib`
    
-   > [progress - Easy to use progress bars.](https://pypi.org/project/progress/)
-   > - `pip install progress`
+   > [alive-progress - A new kind of Progress Bar, with real-time throughput, ETA, and very cool animations!](https://pypi.org/project/alive-progress/)
+   > - `pip install alive-progress`
 
 2. Download the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases) or install it from PyPi with `pip install undiscord`
 3. Run `undiscord <args>` (or `python undiscord.py <args>` if downloaded from GitHub Releases)
