@@ -26,7 +26,7 @@ except ImportError:
 #           U N D I S C O R D          #
 ########################################
 
-version = "1.52"  # git rev-list --count --HEAD
+version = "1.53"  # git rev-list --count HEAD
 release_type = "Beta"  # "Beta" or "Release"
 
 ########################################
@@ -679,7 +679,7 @@ def deleteseq(read=None, msglist=None, bar=None):
     if msglist is not None:
         msglist_copy = msglist.copy()
         for message_id in msglist_copy:
-            message_type = str(msglist[f"{message_id}"][0]["type"])
+            message_type = int(msglist[f"{message_id}"][0]["type"])
             typestr = typelist(message_type)
             index += 1
             remaining -= 1
@@ -727,13 +727,13 @@ def fetch():
             data = fetchpage()
             readed.append(data)
             searchurl = furl(searchurl).remove(['before']).url
+            a += len(data)
+            bar()
             if len(data) < 50:
-                pass
+                break
             else:
                 last = data[49]['id']
                 searchurl = furl(searchurl).add({"before": f"{last}"}).url
-            a += len(data)
-            bar()
     print("")
     with alive_bar(title=f'{mg}Filtering', bar=None, ctrl_c=False, monitor_end=False, enrich_print=False, elapsed="({elapsed})", stats=False, elapsed_end="in {elapsed}", monitor=False, spinner="waves2") as spinner:
         msgs = [[x] for y in readed for x in y]
