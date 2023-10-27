@@ -1,0 +1,10 @@
+name: undiscord
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - ujson
+  - icmplib
+  - alive-progress
+  - furl
+  - pwinput
