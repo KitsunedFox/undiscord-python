@@ -12,11 +12,12 @@ from random import random, choice
 import base64
 from alive_progress import alive_bar
 import re
+import ast
+import os
 from json import JSONDecodeError
 import argparse
 try:
     import ujson
-
     jsonlib = ujson
 except ImportError:
     import json
@@ -26,7 +27,7 @@ except ImportError:
 #           U N D I S C O R D          #
 ########################################
 
-version = "1.53"  # git rev-list --count HEAD
+version = "1.54"  # git rev-list --count HEAD
 release_type = "Beta"  # "Beta" or "Release"
 
 ########################################
@@ -59,7 +60,11 @@ is_nsfw = None
 
 color_support = True
 
-fetch_before = True
+build_cache = False
+
+fetch_before = False
+
+use_cache = False
 
 skip_configuration = None
 
@@ -70,7 +75,7 @@ api = "https://canary.discord.com/api/v10"
 vertag = release_type + " " + version
 
 desc = f"UNDISCORD PYTHON - {vertag} | Bulk wipe messages in a Discord server or DM using a Python interpreter on " \
-       f"Android or PC. Created by HardcodedCat, Under MIT License "
+       f"Android or PC. Created by KitsunedFox, Under MIT License "
 tiplist = [
     "You can choose whether login using a Token or Email+Password.",
     "There's an pre-configuration section inside this script, so that you don't need to configure everything again!",
@@ -109,8 +114,10 @@ args_list = [
     ('-hl', '--has_link', True, "Fetch only messages that contain URLs?"),
     ('-hf', '--has_file', True, "Fetch only messages that contain Files?"),
     ('-n', '--nsfw', True, "Is NSFW Channel?"),
+    ('-BC', '--buildcache', True, "Build channel messages cache"),
+    ('-FB', '--fetchbefore', True, "Enable Fetch-Before mode"),
     ('-NC', '--nocolor', False, "Disable colored UI"),
-    ('-NF', '--nofetch', False, "Disable Fetch-Before Mode"),
+    ('-UC', '--usecache', True, "Use messages cache instead of fetching"),
     ('-S', '--skip', True, "Skips optional configuration prompts")
 ]
 for arg_short, arg_long, arg_const, arg_help in args_list:
@@ -140,7 +147,9 @@ attribute_mapping = {
     'has_file': args.has_file,
     'is_nsfw': args.nsfw,
     'color_support': args.nocolor,
-    'fetch_before': args.nofetch,
+    'build_cache': args.buildcache,
+    'fetch_before': args.fetchbefore,
+    'use_cache': args.usecache,
     'skip_configuration': args.skip
 }
 for attr, value in attribute_mapping.items():
@@ -701,10 +710,12 @@ def deleteseq(read=None, msglist=None, bar=None):
                 print(" " * len(num) + "     " + red("Type: " + str(message_type) + " — " + typestr) + "\n")
                 del pending[f"{message_id}"]
 
+fetched = 0
 
 def fetch():
     global searchurl
     global total
+    global fetched
 
     def fetchpage():
         reqdata = None
@@ -723,9 +734,10 @@ def fetch():
     print("")
     a = 0
     with alive_bar(divided, title=f'{mg}Fetching', bar="smooth", length=32, elapsed=False, enrich_print=False, monitor='{percent:.0%}', ctrl_c=False, spinner=None) as bar:
-        while a < total:  # Fetch all unfiltered messages from DM, both authors
+        while a < total:  # Fetch all unfiltered messages from Channel, all authors
             data = fetchpage()
             readed.append(data)
+            fetched += len(data)
             searchurl = furl(searchurl).remove(['before']).url
             a += len(data)
             bar()
@@ -735,6 +747,11 @@ def fetch():
                 last = data[49]['id']
                 searchurl = furl(searchurl).add({"before": f"{last}"}).url
     print("")
+    return readed
+
+def filter(input:list):
+    global total
+    readed = input
     with alive_bar(title=f'{mg}Filtering', bar=None, ctrl_c=False, monitor_end=False, enrich_print=False, elapsed="({elapsed})", stats=False, elapsed_end="in {elapsed}", monitor=False, spinner="waves2") as spinner:
         msgs = [[x] for y in readed for x in y]
         if min_id != "":
@@ -758,7 +775,7 @@ def fetch():
             msgs = [msg for msg in msgs if content in msg[0]["content"]]
         spinner.title=f"{mg}Filtered"
     print("")
-    total = len(msgs)  # Changea total value to the amount of filtered messages
+    total = len(msgs)  # Changes total value to the amount of filtered messages
     msglist = [{'messages': msgs}]
     return msglist
 
@@ -785,32 +802,56 @@ def fetch():
 
 # --------------------------------------------------
 
-if fetch_before is True:
+if build_cache is True:
+    searchurl = f"{api}/channels/{channel_id}/messages/search?"
     search()
     if total != 0:
         searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
         divided = ceil(total / 50)
-        read = fetch()
+        cache = fetch()
+        with open(os.path.join(os.getcwd(), f'{channel_id}.undiscord'), 'w') as file:
+            file.write(str(cache))
+    print(mgn + green(f"Ended at {now()}."))
+    print(mg + greyple(f"Cached approximately {fetched} messages."))
+elif use_cache is True:
+    search()
+    if total != 0:
+        searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
+        divided = ceil(total / 50)
+        with open(os.path.join(os.getcwd(), f'{channel_id}.undiscord'), 'r') as file:
+            with alive_bar(title=f'{mg}Loading File', bar=None, ctrl_c=False, monitor_end=False, enrich_print=False, elapsed="({elapsed})", stats=False, elapsed_end="in {elapsed}", monitor=False, spinner="waves2") as spinner:
+                cached = file.read()
+                cached = ast.literal_eval(cached)
+                spinner.title=f"{mg}File Loaded"
+        filtered = filter(cached)
         with alive_bar(total, title=f'{mg}Deleting', bar="smooth", length=32, elapsed=False, monitor='{percent:.0%}', enrich_print=False, ctrl_c=False, spinner=None) as bar:
-            deleteseq(read, bar=bar)
+            deleteseq(filtered, bar=bar)
             while len(pending) != 0:
                 deleteseq(msglist=pending, bar=bar)
+    print(mgn + green(f"Ended at {now()}, using Local-Cache Method."))
+    print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
+elif fetch_before is True:
+    search()
+    if total != 0:
+        searchurl = f"{api}/channels/{channel_id}/messages?limit=50"
+        divided = ceil(total / 50)
+        filtered = filter(fetch())
+        with alive_bar(total, title=f'{mg}Deleting', bar="smooth", length=32, elapsed=False, monitor='{percent:.0%}', enrich_print=False, ctrl_c=False, spinner=None) as bar:
+            deleteseq(filtered, bar=bar)
+            while len(pending) != 0:
+                deleteseq(msglist=pending, bar=bar)
+    print(mgn + green(f"Ended at {now()}, using Fetch-Before Method."))
+    print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
 else:
     searchurl = furl(searchurl).add({"limit": "25"}).url
-
     read = search()
-
     divided = ceil(int(total) / 25)
-    
     with alive_bar(total, title=f'{mg}Deleting', bar="smooth", length=32, elapsed=False, monitor='{percent:.0%}', enrich_print=False, ctrl_c=False, spinner=None) as bar:
-
         for _ in range(divided):
             deleteseq(read, bar=bar)
             allundeletable = False
             remaining = zerofy(remaining)
             read = search()
-
-
         def final():
             global read
             global remaining
@@ -821,16 +862,13 @@ else:
                 allundeletable = False
                 remaining = zerofy(remaining)
                 read = search()
-
-
         while remaining != 0:
             if len(pending) != 0:
                 final()
             if remaining != 0:
                 final()
-
-print(mgn + green(f"Ended at {now()}"))
-print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
+    print(mgn + green(f"Ended at {now()}, using Live-Fetch Method."))
+    print(mg + greyple(f"Deleted {deleted} messages, {failed} failed."))
 
 
 def undiscord():
@@ -838,4 +876,4 @@ def undiscord():
     pass
 
 # UNDISCORD-PYTHON - Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.
-# https://github.com/HardcodedCat/undiscord-python
+# https://github.com/KitsunedFox/undiscord-python

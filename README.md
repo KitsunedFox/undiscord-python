@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/HardcodedCat/undiscord-python/main/.github/ASSETS/title.png">
+  <img src="https://raw.githubusercontent.com/KitsunedFox/undiscord-python/main/.github/ASSETS/title.png">
 
 
 <div align="center">
-  <a href="https://github.com/HardcodedCat/undiscord-python/releases/latest">
-    <img src="https://img.shields.io/github/v/tag/HardcodedCat/undiscord-python?style=for-the-badge&label=LATEST"/>
+  <a href="https://github.com/KitsunedFox/undiscord-python/releases/latest">
+    <img src="https://img.shields.io/github/v/tag/KitsunedFox/undiscord-python?style=for-the-badge&label=LATEST"/>
   </a>
   <a href="/LICENSE">
     <img src="https://img.shields.io/github/license/hardcodedcat/undiscord-python?style=for-the-badge"/>
@@ -30,7 +30,7 @@
 
 ## Instructions:
 
-_This script might not work on Pydroid due to its limitations. Please try running on [Termux](https://github.com/HardcodedCat/termux-monet) with Python installed instead._
+_This script might not work on Pydroid due to its limitations. Please try running on [Termux](https://github.com/KitsunedFox/termux-monet) with Python installed instead._
 
 1. Install the Libraries below using any python interpreter on PC or Android.
 
@@ -48,7 +48,7 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
    > [alive-progress - A new kind of Progress Bar, with real-time throughput, ETA, and very cool animations!](https://pypi.org/project/alive-progress/)
    > - `pip install alive-progress`
 
-2. Download the script from [Releases](https://github.com/HardcodedCat/deleteDiscordMessages.py/releases) or install it from PyPi with `pip install undiscord`
+2. Download the script from [Releases](https://github.com/KitsunedFox/deleteDiscordMessages.py/releases) or install it from PyPi with `pip install undiscord`
 3. Run `undiscord <args>` (or `python undiscord.py <args>` if downloaded from GitHub Releases)
 4. Fill "Auth Token", "Guild ID" and "Channel ID" Fields. (Channel ID Isn't mandatory if you're deleting messages from a GUILD)
 5. Fill all the other optional fields. you can skip any optional input by pressing <kbd>ENTER</kbd>
@@ -61,7 +61,7 @@ _This script might not work on Pydroid due to its limitations. Please try runnin
 undiscord [-h] [-t <token>] [-e <email>] [-p <password>]
 [-g <guild id>] [-c <channel id>] [-a <author id>]
 [-min <message id>] [-max <message id>] [-C "text"]
-[-hl] [-hf] [-n] [-NC] [-NF] [-S]
+[-hl] [-hf] [-n] [-BC] [-NC] [-FB] [-UC] [-S]
 ```
 
 ![Demo](https://user-images.githubusercontent.com/103902727/163732932-5f4dda39-363d-456b-b2ae-7aa6dbc6c7f9.gif)
@@ -87,14 +87,14 @@ If you are unsure do not share screenshots, or copy paste logs on the internet.
 ## This project is based on [victornpb's Javascript Undiscord](https://github.com/victornpb/deleteDiscordMessages).
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/HardcodedCat/undiscord-python/main/.github/ASSETS/logo.svg" width=40% height=40%>
+<img src="https://raw.githubusercontent.com/KitsunedFox/undiscord-python/main/.github/ASSETS/logo.svg" width=40% height=40%>
 </p>
 
 <div align="center">
   <a href="https://pypi.org/project/undiscord">
     <img src="https://img.shields.io/pepy/dt/undiscord?style=for-the-badge&logo=pypi&logoColor=yellow&label=PyPi%20Downloads&color=blue"/>
   </a>
-  <a href="https://github.com/HardcodedCat/undiscord-python/releases/latest">
-    <img src="https://img.shields.io/github/downloads/HardcodedCat/undiscord-python/total?style=for-the-badge&logo=github&color=brightgreen&label=GitHub%20Downloads"/>
+  <a href="https://github.com/KitsunedFox/undiscord-python/releases/latest">
+    <img src="https://img.shields.io/github/downloads/KitsunedFox/undiscord-python/total?style=for-the-badge&logo=github&color=brightgreen&label=GitHub%20Downloads"/>
   </a>
 </div>

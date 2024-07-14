@@ -7,7 +7,7 @@ def main():
     setup(
         name='undiscord',
         version='1.53',
-        author="HardcodedCat",
+        author="KitsunedFox",
         scripts=['undiscord'],
         py_modules=['undiscord'],
         description='Bulk wipe messages in a Discord server or DM using a Python interpreter on Android or PC.',
@@ -44,7 +44,7 @@ def main():
         long_description=open('README.md').read(),
         long_description_content_type='text/markdown',
         platforms=['any'],
-        url='https://github.com/HardcodedCat/undiscord-python',
+        url='https://github.com/KitsunedFox/undiscord-python',
         license="MIT"
     )
     return 0
